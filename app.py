@@ -33,17 +33,18 @@ def guardar_telefono(nombre, telefono):
     datos = []
     if os.path.exists(JSON_FILE):
         with open(JSON_FILE, 'r', encoding='utf-8') as f:
-            try: datos = json.load(f)
-            except: datos = []
+            content = f.read()
+            if content: # Verificar que no esté vacío
+                try: datos = json.loads(content)
+                except: datos = []
     
-    # Añadimos el nuevo contacto al formato de lista
-    datos.append({
-        "nombre": nombre.strip(),
-        "telefono": str(telefono).strip()
-    })
-    
-    with open(JSON_FILE, 'w', encoding='utf-8') as f:
-        json.dump(datos, f, indent=4, ensure_ascii=False)
+    # Evitar duplicados antes de añadir
+    if not any(c['nombre'].upper() == nombre.strip().upper() for c in datos):
+        datos.append({"nombre": nombre.strip(), "telefono": str(telefono).strip()})
+        with open(JSON_FILE, 'w', encoding='utf-8') as f:
+            json.dump(datos, f, indent=4, ensure_ascii=False)
+
+
 @app.route('/enviar_asignacion', methods=['POST'])
 def enviar_asignacion():
     try:
@@ -94,6 +95,7 @@ def enviar_asignacion():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
 
 
 
