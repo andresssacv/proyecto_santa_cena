@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import json
 import urllib.parse
@@ -51,7 +51,10 @@ def guardar_nuevo_en_json(nombre, telefono):
         return True
     except:
         return False
-
+@app.route('/')
+def home():
+    return render_template('index.html')
+    
 @app.route('/enviar_asignacion', methods=['POST'])
 def enviar_asignacion():
     data = request.json
@@ -83,4 +86,5 @@ def enviar_asignacion():
     return jsonify({"status": "success", "url_whatsapp": url_wsp})
 
 if __name__ == '__main__':
+
     app.run(debug=True, port=5000)
