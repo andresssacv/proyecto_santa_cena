@@ -6,7 +6,7 @@ import pandas as pd
 import os
 import openpyxl
 
-# Esto asegura que Flask encuentre la carpeta templates en Render
+# 1. Configuración de carpetas para Render
 app = Flask(__name__, template_folder='templates')
 CORS(app)
 
@@ -55,6 +55,7 @@ def guardar_nuevo_en_json(nombre, telefono):
 
 @app.route('/')
 def home():
+    # Render busca este archivo dentro de la carpeta /templates
     return render_template('index.html')
 
 @app.route('/enviar_asignacion', methods=['POST'])
@@ -78,15 +79,17 @@ def enviar_asignacion():
     if not exito:
         return jsonify({"status": "error", "message": mensaje}), 400
 
-    # CAMBIO IMPORTANTE: Usamos el link de Render aquí
-    # Reemplaza 'andresssacv' por tu usuario real de Render si es distinto
-    link_mapa = f"https://santa-cena-app.onrender.com/?fila={fila}&readOnly=true"
+    # 2. EL LINK DEBE SER EL DE RENDER
+    # Sustituye 'PROYECTO' por el nombre que sale en la URL azul de tu Render
+    link_mapa = f"https://andresssacv.onrender.com/?fila={fila}&readOnly=true"    
     
     msj = f"Hola {hermano['nombre']}, Fila: {fila}, Sector: {sector}. Mapa: {link_mapa}"
     url_whatsapp = f"https://wa.me/{hermano['telefono']}?text={urllib.parse.quote(msj)}"
     
     return jsonify({"status": "success", "url_whatsapp": url_whatsapp})
 
+# 3. ESTO ES VITAL PARA RENDER
 if __name__ == '__main__':
+    # Render asigna un puerto dinámico, esto lo captura:
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
