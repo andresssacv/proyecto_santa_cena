@@ -17,10 +17,17 @@ def index():
 @app.route('/enviar_asignacion', methods=['POST'])
 def enviar_asignacion():
     try:
-        data = request.json
+        # Esta línea es la que lee la "cajita" de datos que enviamos desde el HTML
+        data = request.get_json() 
+        
+        if not data:
+            return jsonify({"status": "error", "message": "No se recibieron datos"}), 400
+        
         nombre = data.get('nombre')
         fila = str(data.get('fila'))
-        sector = data.get('sector', 'N/A')
+        sector = data.get('sector')
+        
+        # ... resto del código de guardado en Excel ...'N/A')
 
         if not nombre or not fila:
             return jsonify({"status": "error", "message": "Faltan datos"}), 400
@@ -49,3 +56,4 @@ def enviar_asignacion():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
