@@ -620,35 +620,34 @@
                                         })}
                                     </div>
                                 </div>
-
-                                {/* --- COMIENZA EL BOTÓN NUEVO --- */}
+                                {/* BOTÓN DE ADMINISTRACIÓN */}
                                 {!readOnly && (
                                     <button 
                                         onClick={() => window.location.href='/tablero'}
                                         style={{
                                             position: 'absolute',
-                                            bottom: '20px',
-                                            left: '20px',
+                                            bottom: '25px',
+                                            left: '25px',
                                             backgroundColor: '#1e293b',
                                             color: 'white',
-                                            padding: '12px 20px',
+                                            padding: '12px 24px',
                                             borderRadius: '50px',
-                                            fontSize: '12px',
+                                            fontSize: '11px',
                                             fontWeight: '800',
-                                            boxShadow: '0 10px 15px rgba(0,0,0,0.2)',
+                                            boxShadow: '0 10px 15px rgba(0,0,0,0.3)',
                                             zIndex: 100,
                                             border: 'none',
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
-                                            gap: '8px'
+                                            gap: '8px',
+                                            transition: 'all 0.2s'
                                         }}
                                     >
                                         <div style={{ width: '8px', height: '8px', backgroundColor: '#4ade80', borderRadius: '50%' }}></div>
                                         VER REGISTRADOS (TABLERO)
                                     </button>
                                 )}
-                                {/* --- TERMINA EL BOTÓN NUEVO --- */}
                             </div>
                         </div>
                         
