@@ -200,12 +200,11 @@
                 };
 
                 try {
-                    let response = await fetch('/enviar_asignacion', {
+                    const response = await fetch('/enviar_asignacion', { 
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
-
                     if (response.status === 404) {
                         const tel = prompt(`👤 "${nombreHermano}" no está registrado.\n\nIngresa su teléfono para agregarlo (ej: 56912345678):`);
                         if (tel) {
