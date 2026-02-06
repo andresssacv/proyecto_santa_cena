@@ -147,27 +147,32 @@
            ========================================= */
 
         const App = () => {
-            // --- NUEVA LÓGICA DE LECTURA ---
             const params = new URLSearchParams(window.location.search);
             const filaDeUrl = params.get('fila');
             const esModoLectura = params.get('readOnly') === 'true';
-
-            const [selectedId, setSelectedId] = React.useState(null);
-            const [trayNumber, setTrayNumber] = React.useState(filaDeUrl || ''); 
-            const [nombreHermano, setNombreHermano] = React.useState('');
+        
+            const [selectedId, setSelectedId] = useState(null); // Usar useState directamente si desestructuraste arriba
+            const [trayNumber, setTrayNumber] = useState(filaDeUrl || ''); 
+            const [nombreHermano, setNombreHermano] = useState('');
             const [telefono, setTelefono] = useState("");
             const [mostrandoCampoTelefono, setMostrandoCampoTelefono] = useState(false);
-
+        
+            // UN SOLO REF
             const containerRef = useRef(null);
-
-            // Auto-seleccionar sector si viene del link
-            React.useEffect(() => {
+        
+            // Corregir SECTORS -> SECTORS_CONFIG
+            useEffect(() => {
                 if (filaDeUrl) {
                     const num = parseInt(filaDeUrl);
-                    const sectorEncontrado = SECTORS.find(s => num >= s.range[0] && num <= s.range[1]);
+                    const sectorEncontrado = SECTORS_CONFIG.find(s => 
+                        (num >= s.rangeA[0] && num <= s.rangeA[1]) || 
+                        (num >= s.rangeB[0] && num <= s.rangeB[1])
+                    );
                     if (sectorEncontrado) setSelectedId(sectorEncontrado.id);
                 }
             }, [filaDeUrl]);
+
+    // ... resto del código ...
                     
             // Estados de UI
             const [showControls, setShowControls] = useState(true);
