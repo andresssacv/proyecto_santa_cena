@@ -199,7 +199,6 @@
                 const payload = { 
                     nombre: nombreHermano, 
                     fila: trayNumber, 
-                    sector: selectedId, // Asegúrate de que diga 'sector' para que Python lo entienda
                     telefono: telefonoAdicional 
                 };
     
@@ -622,34 +621,6 @@
                                         })}
                                     </div>
                                 </div>
-                                {/* BOTÓN DE ADMINISTRACIÓN */}
-                                {!readOnly && (
-                                    <button 
-                                        onClick={() => window.location.href='/tablero'}
-                                        style={{
-                                            position: 'absolute',
-                                            bottom: '25px',
-                                            left: '25px',
-                                            backgroundColor: '#1e293b',
-                                            color: 'white',
-                                            padding: '12px 24px',
-                                            borderRadius: '50px',
-                                            fontSize: '11px',
-                                            fontWeight: '800',
-                                            boxShadow: '0 10px 15px rgba(0,0,0,0.3)',
-                                            zIndex: 100,
-                                            border: 'none',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '8px',
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        <div style={{ width: '8px', height: '8px', backgroundColor: '#4ade80', borderRadius: '50%' }}></div>
-                                        VER REGISTRADOS (TABLERO)
-                                    </button>
-                                )}
                             </div>
                         </div>
                         
