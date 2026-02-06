@@ -99,10 +99,17 @@ def enviar_asignacion():
 
 # --- PANEL DE ADMINISTRACIÓN Y CONTROL ---
 
+# (Mantener todo el inicio igual hasta la ruta /tablero)
+
 @app.route('/tablero')
 def tablero():
     if not os.path.exists(EXCEL_FILE):
-        return "<h2 style='font-family:sans-serif; text-align:center;'>No hay registros aún.</h2>"
+        return """
+        <div style='text-align:center; padding:50px; font-family:sans-serif;'>
+            <h2>No hay registros aún.</h2>
+            <a href='/' style='text-decoration:none; color:blue;'>← Volver al Mapa</a>
+        </div>
+        """
     
     df = pd.read_excel(EXCEL_FILE, engine='openpyxl')
     filas_html = ""
@@ -112,7 +119,7 @@ def tablero():
             <td>{row['Nombre']}</td>
             <td><b>Fila {row['Fila']}</b></td>
             <td>{row['Sector']}</td>
-            <td><button onclick="eliminar('{row['Fila']}')" style="background:red; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">Eliminar</button></td>
+            <td><button onclick="eliminar('{row['Fila']}')" style="background:#ff4444; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:bold;">Liberar</button></td>
         </tr>
         '''
 
@@ -122,15 +129,17 @@ def tablero():
             <title>Admin - Santa Cena</title>
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <style>
-                body {{ font-family: sans-serif; background: #f1f5f9; padding: 20px; }}
-                table {{ width: 100%; background: white; border-collapse: collapse; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }}
-                th, td {{ padding: 15px; text-align: left; border-bottom: 1px solid #edf2f7; }}
-                th {{ background: #2563eb; color: white; }}
-                .btn-reset {{ background: #ef4444; color: white; padding: 10px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 20px; font-weight: bold; }}
+                body {{ font-family: 'Manrope', sans-serif; background: #f1f5f9; padding: 15px; margin:0; }}
+                .header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }}
+                table {{ width: 100%; background: white; border-collapse: collapse; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }}
+                th, td {{ padding: 15px; text-align: left; border-bottom: 1px solid #f1f5f9; }}
+                th {{ background: #1e293b; color: white; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }}
+                .btn-back {{ background: #fff; color: #1e293b; padding: 10px 20px; text-decoration: none; border-radius: 10px; font-weight: 800; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }}
+                .btn-reset {{ background: #ef4444; color: white; padding: 15px; text-decoration: none; border-radius: 12px; display: block; text-align: center; margin-top: 30px; font-weight: 800; }}
             </style>
             <script>
                 async function eliminar(fila) {{
-                    if(confirm("¿Liberar la fila " + fila + "?")) {{
+                    if(confirm("¿Seguro que quieres liberar la fila " + fila + "?")) {{
                         const res = await fetch('/eliminar_registro/' + fila, {{ method: 'DELETE' }});
                         if(res.ok) location.reload();
                     }}
@@ -138,15 +147,20 @@ def tablero():
             </script>
         </head>
         <body>
-            <h1>Registros en Vivo</h1>
+            <div class="header">
+                <h1 style="font-size: 20px; font-weight: 800;">REGISTROS HOY</h1>
+                <a href="/" class="btn-back">← VOLVER</a>
+            </div>
             <table>
                 <tr><th>Nombre</th><th>Fila</th><th>Sector</th><th>Acción</th></tr>
                 {filas_html}
             </table>
-            <a href="/reset_total_sistema" class="btn-reset" onclick="return confirm('¿BORRAR TODO EL MES?')">RESET TOTAL MENSUAL</a>
+            <a href="/reset_total_sistema" class="btn-reset" onclick="return confirm('¿ESTÁS SEGURO? Se borrarán todos los registros del mes.')">BORRAR TODO EL MES</a>
         </body>
     </html>
     '''
+
+# (Mantener el resto de rutas /eliminar_registro y /reset_total_sistema igual)
 
 @app.route('/eliminar_registro/<fila>', methods=['DELETE'])
 def eliminar_registro(fila):
@@ -169,3 +183,4 @@ def reset_total():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+
