@@ -188,46 +188,53 @@
 
             // Busca donde definiste los estados y pega esto:
             const enviarAlBackend = async () => {
+                // Verificamos que los datos básicos estén
                 if (!nombreHermano || !trayNumber) {
-                    alert("⚠️ Por favor ingresa el nombre y selecciona una fila.");
+                    alert("Por favor, selecciona un sector en el mapa e ingresa el nombre.");
                     return;
                 }
-
-                let payload = {
-                    nombre: nombreHermano,
-                    fila: trayNumber,
-                    sector: selectedId
+    
+                // Preparamos el paquete de datos
+                const payload = { 
+                    nombre: nombreHermano, 
+                    fila: trayNumber, 
+                    sector: selectedId 
                 };
-
+    
                 try {
-                    const response = await fetch('/enviar_asignacion', { 
+                    // RUTA RELATIVA: Esto es lo que hace que funcione en Render
+                    // Al no poner "http://...", el navegador busca el API en el mismo dominio de la web
+                    const response = await fetch('/enviar_asignacion', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
-                    if (response.status === 404) {
-                        const tel = prompt(`👤 "${nombreHermano}" no está registrado.\n\nIngresa su teléfono para agregarlo (ej: 56912345678):`);
+    
+                    const data = await response.json();
+    
+                    if (data.status === 'success') {
+                        // Si todo sale bien, abrimos la URL de WhatsApp que nos mandó el Python
+                        window.location.href = data.url_whatsapp;
+                    } else if (data.status === 'not_found') {
+                        // Si el hermano no está en el JSON, pedimos el teléfono aquí mismo
+                        const tel = prompt("Hermano no registrado. Ingresa su número de WhatsApp (ej: 56912345678):");
                         if (tel) {
                             payload.telefono = tel;
-                            response = await fetch('http://127.0.0.1:5000/enviar_asignacion', {
+                            // Reintentamos el envío ahora con el teléfono incluido
+                            const retryResponse = await fetch('/enviar_asignacion', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify(payload)
                             });
-                        } else { return; }
-                    }
-
-                    const resData = await response.json();
-                    if (response.ok) {
-                        window.open(resData.url_whatsapp, '_blank');
-                        setNombreHermano('');
-                        alert("✅ Registro exitoso");
+                            const retryData = await retryResponse.json();
+                            if (retryData.url_whatsapp) window.location.href = retryData.url_whatsapp;
+                        }
                     } else {
-                        alert("⛔ " + resData.message);
+                        alert("Error del servidor: " + (data.message || "Error desconocido"));
                     }
-                } catch (e) {
-                    console.error("Error de conexión:", e);
-                    alert("❌ No se pudo conectar con el servidor. Revisa que Python esté corriendo.");
+                } catch (error) {
+                    console.error("Error de conexión:", error);
+                    alert("Error crítico: No se pudo conectar con el servidor de Render. Revisa que el servicio esté 'Live'.");
                 }
             };
             
