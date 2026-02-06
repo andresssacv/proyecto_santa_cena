@@ -195,10 +195,12 @@
                 }
     
                 // Preparamos el paquete de datos
+                // Busca la función enviarAlBackend y cambia el payload:
                 const payload = { 
                     nombre: nombreHermano, 
                     fila: trayNumber, 
-                    sector: selectedId 
+                    sector: selectedId, // Asegúrate de que diga 'sector' para que Python lo entienda
+                    telefono: telefonoAdicional 
                 };
     
                 try {
