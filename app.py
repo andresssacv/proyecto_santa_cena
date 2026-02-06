@@ -6,7 +6,8 @@ import pandas as pd
 import os
 import openpyxl
 
-app = Flask(__name__)
+# Esto asegura que Flask encuentre la carpeta templates en Render
+app = Flask(__name__, template_folder='templates')
 CORS(app)
 
 EXCEL_FILE = 'registros_santa_cena.xlsx'
@@ -51,10 +52,11 @@ def guardar_nuevo_en_json(nombre, telefono):
         return True
     except:
         return False
+
 @app.route('/')
 def home():
     return render_template('index.html')
-    
+
 @app.route('/enviar_asignacion', methods=['POST'])
 def enviar_asignacion():
     data = request.json
@@ -76,16 +78,15 @@ def enviar_asignacion():
     if not exito:
         return jsonify({"status": "error", "message": mensaje}), 400
 
-# Generar WhatsApp
-    # Asumiendo que en Render le pondrás "santa-cena-app"
-    link_mapa = f"https://santa-cena-app.onrender.com/?fila={fila}&readOnly=true"    
+    # CAMBIO IMPORTANTE: Usamos el link de Render aquí
+    # Reemplaza 'andresssacv' por tu usuario real de Render si es distinto
+    link_mapa = f"https://santa-cena-app.onrender.com/?fila={fila}&readOnly=true"
     
-    msj = f"Hola {hermano['nombre']}, tu ubicación para la Santa Cena es:\n📍 Fila: {fila}\nSector: {sector}\n\nMira tu mapa aquí: {link_mapa}"
-    url_wsp = f"https://wa.me/{hermano['telefono']}?text={urllib.parse.quote(msj)}"
+    msj = f"Hola {hermano['nombre']}, Fila: {fila}, Sector: {sector}. Mapa: {link_mapa}"
+    url_whatsapp = f"https://wa.me/{hermano['telefono']}?text={urllib.parse.quote(msj)}"
     
-    return jsonify({"status": "success", "url_whatsapp": url_wsp})
+    return jsonify({"status": "success", "url_whatsapp": url_whatsapp})
 
 if __name__ == '__main__':
-
-    app.run(debug=True, port=5000)
-
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
