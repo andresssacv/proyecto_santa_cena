@@ -147,152 +147,87 @@
            ========================================= */
 
         const App = () => {
-            const params = new URLSearchParams(window.location.search);
-            const filaDeUrl = params.get('fila');
-            const esModoLectura = params.get('readOnly') === 'true';
-        
-            const [selectedId, setSelectedId] = useState(null); // Usar useState directamente si desestructuraste arriba
-            const [trayNumber, setTrayNumber] = useState(filaDeUrl || ''); 
-            const [nombreHermano, setNombreHermano] = useState('');
-            const [telefono, setTelefono] = useState("");
-            const [mostrandoCampoTelefono, setMostrandoCampoTelefono] = useState(false);
-        
-            // UN SOLO REF
-            const containerRef = useRef(null);
-        
-            // Corregir SECTORS -> SECTORS_CONFIG
-            useEffect(() => {
-                if (filaDeUrl) {
-                    const num = parseInt(filaDeUrl);
-                    const sectorEncontrado = SECTORS_CONFIG.find(s => 
-                        (num >= s.rangeA[0] && num <= s.rangeA[1]) || 
-                        (num >= s.rangeB[0] && num <= s.rangeB[1])
-                    );
-                    if (sectorEncontrado) setSelectedId(sectorEncontrado.id);
-                }
-            }, [filaDeUrl]);
+    // 1. Estados
+    const params = new URLSearchParams(window.location.search);
+    const filaDeUrl = params.get('fila');
+    const esModoLectura = params.get('readOnly') === 'true';
 
-    // ... resto del código ...
-                    
-            // Estados de UI
-            const [showControls, setShowControls] = useState(true);
-           
-            // Estados del Mapa
-            const [scale, setScale] = useState(1);
-            const [viewTransform, setViewTransform] = useState({ x: 0, y: 0, k: 1 });
-            const [isDragging, setIsDragging] = useState(false);
-            const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-            const [isAnimating, setIsAnimating] = useState(true);
-            
-            const containerRef = useRef(null);
+    const [selectedId, setSelectedId] = useState(null);
+    const [trayNumber, setTrayNumber] = useState(filaDeUrl || ''); 
+    const [nombreHermano, setNombreHermano] = useState('');
+    const [telefono, setTelefono] = useState("");
+    const [mostrandoCampoTelefono, setMostrandoCampoTelefono] = useState(false);
+    
+    const [showControls, setShowControls] = useState(true);
+    const [scale, setScale] = useState(1);
+    const [viewTransform, setViewTransform] = useState({ x: 0, y: 0, k: 1 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const [isAnimating, setIsAnimating] = useState(true);
 
-            // Efecto para leer la fila desde la URL (ej: app.html?fila=67)
-            useEffect(() => {
-                const params = new URLSearchParams(window.location.search);
-                const filaUrl = params.get('fila');
-                if (filaUrl) {
-                    setTrayNumber(filaUrl);
-                    // El useEffect de activeData ya existente se encargará del resto
-                }
-            }, []);
+    const containerRef = useRef(null); // UNA SOLA VEZ
 
-            // Busca donde definiste los estados y pega esto:
-           const enviarAlBackend = async () => {
-                const payload = { 
-                    nombre: nombreHermano, 
-                    fila: trayNumber, 
-                    sector: selectedId,
-                    telefono: telefono // Se envía vacío si ya existe en el JSON
-                };
-            
-                try {
-                    const response = await fetch('/enviar_asignacion', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    const data = await response.json();
-            
-                    if (data.status === 'need_phone') {
-                        setMostrandoCampoTelefono(true);
-                        alert("Este hermano no está en la base de datos. Por favor, ingresa su teléfono para guardarlo.");
-                    } else if (data.status === 'success') {
-                        window.open(data.url_whatsapp, '_blank');
-                        // Limpiamos todo para el siguiente registro
-                        setNombreHermano("");
-                        setTrayNumber("");
-                        setTelefono("");
-                        setMostrandoCampoTelefono(false);
-                    } else {
-                        alert(data.message);
-                    }
-                } catch (e) {
-                    alert("Error de conexión");
-                }
-            };
-            
-            // --- HASTA AQUÍ ---
-            
-            
-            // Lógica de búsqueda
-            const activeData = useMemo(() => {
-                const num = parseInt(trayNumber);
-                if (isNaN(num)) return null;
+    // 2. Lógica de búsqueda (Corregida de SECTORS a SECTORS_CONFIG)
+    const activeData = useMemo(() => {
+        const num = parseInt(trayNumber);
+        if (isNaN(num)) return null;
+        for (const sector of SECTORS_CONFIG) {
+            const isSharedExplicit = (sector.id === 5 && num === 67) || (sector.id === 13 && num === 193) || (sector.id === 9 && num === 132); 
+            const inA = (num >= sector.rangeA[0] && num <= sector.rangeA[1]);
+            const inB = (num >= sector.rangeB[0] && num <= sector.rangeB[1]);
+            if (inA || inB || isSharedExplicit) {
+                return { ...sector, tray: num, isFront: inA || isSharedExplicit, isShared: (inA && inB) || isSharedExplicit };
+            }
+        }
+        return null;
+    }, [trayNumber]);
 
-                for (const sector of SECTORS_CONFIG) {
-                    const isSharedExplicit = (sector.id === 5 && num === 67) || (sector.id === 13 && num === 193) || (sector.id === 9 && num === 132); 
-                    const inA = (num >= sector.rangeA[0] && num <= sector.rangeA[1]);
-                    const inB = (num >= sector.rangeB[0] && num <= sector.rangeB[1]);
-                    const inBothRanges = inA && inB;
+    // 3. Efectos
+    useEffect(() => {
+        if (activeData) setSelectedId(activeData.id);
+    }, [activeData]);
 
-                    if (inA || inB || isSharedExplicit) {
-                        let subLabel = "";
-                        let isShared = false;
-                        if (inBothRanges || isSharedExplicit) { isShared = true; subLabel = "A y B (Compartido)"; }
-                        else if (inA) { subLabel = "Frente (A)"; } 
-                        else { subLabel = "Fondo (B)"; }
-                        
-                        return { ...sector, tray: num, subLabel, isFront: inA || isSharedExplicit, isShared };
-                    }
-                }
-                return null;
-            }, [trayNumber]);
+    useEffect(() => {
+        const handleResize = () => {
+            if (containerRef.current) {
+                const winW = window.innerWidth, winH = window.innerHeight;
+                const newScale = Math.min(winW / 1280, winH / 720) * 0.95;
+                setScale(newScale);
+            }
+        };
+        window.addEventListener('resize', handleResize);
+        handleResize();
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
-            // EFECTO: Búsqueda -> Selección (SIN ZOOM AUTOMÁTICO)
-            useEffect(() => {
-                if (activeData) {
-                    setSelectedId(activeData.id);
-                    // IMPORTANTE: Aquí NO llamamos a ninguna función de zoom.
-                    // El usuario debe hacer click en "Acercar" si lo desea.
-                } else if (trayNumber === '') {
-                    // Si borra el número, podemos limpiar la selección o dejarla.
-                    // Para que sea "vista inicial", limpiamos si está vacío.
-                    setSelectedId(null);
-                }
-            }, [activeData, trayNumber]);
+    // 4. Funciones de Interacción
+    const enviarAlBackend = async () => {
+        try {
+            const response = await fetch('/enviar_asignacion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre: nombreHermano, fila: trayNumber, sector: selectedId, telefono })
+            });
+            const data = await response.json();
+            if (data.status === 'need_phone') {
+                setMostrandoCampoTelefono(true);
+            } else if (data.status === 'success') {
+                window.open(data.url_whatsapp, '_blank');
+                setNombreHermano(""); setTrayNumber(""); setTelefono(""); setMostrandoCampoTelefono(false);
+            } else { alert(data.message); }
+        } catch (e) { alert("Error de conexión"); }
+    };
 
-            const activeSector = SECTORS_CONFIG.find(s => s.id === selectedId);
-            const activeStyle = activeSector ? getColor(activeSector.meson) : DEFAULT_STYLE;
-
-            // Escala Responsiva
-            useEffect(() => {
-                const handleResize = () => {
-                    if (containerRef.current) {
-                        const windowWidth = window.innerWidth;
-                        const windowHeight = window.innerHeight;
-                        const targetWidth = 1280;
-                        const targetHeight = 720;
-                        const scaleW = windowWidth / targetWidth;
-                        const scaleH = windowHeight / targetHeight;
-                        const newScale = Math.min(scaleW, scaleH) * 0.95;
-                        setScale(newScale);
-                    }
-                };
-                window.addEventListener('resize', handleResize);
-                handleResize();
-                return () => window.removeEventListener('resize', handleResize);
-            }, []);
-
+    const performZoomToSector = (sector) => {
+        if (!sector) return;
+        setIsAnimating(true);
+        const zoomLevel = window.innerWidth < 768 ? 2.8 : 1.8;
+        setViewTransform({ 
+            x: 640 - ((sector.cx / 100) * 1280 * zoomLevel), 
+            y: 360 - ((sector.cy / 100) * 720 * zoomLevel), 
+            k: zoomLevel 
+        });
+    };
             // Función manual de zoom
             const performZoomToSector = (sector) => {
                 if (!sector) return;
