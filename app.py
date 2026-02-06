@@ -61,75 +61,77 @@ def guardar_nuevo_en_json(nombre, telefono):
     except: return False
 
 # --- RUTAS DE LA PÁGINA ---
+from flask import Flask, request, jsonify, render_template, redirect
+import pandas as pd
+import os
 
+app = Flask(__name__)
+
+EXCEL_FILE = 'registros_santa_cena.xlsx'
+
+# 1. Cargar el Mapa
 @app.route('/')
-def home():
-    # Entrega el HTML de forma estática para evitar conflictos de llaves {{ }}
-    return send_from_directory('templates', 'index.html')
+def index():
+    return render_template('index.html')
 
-@app.route('/enviar_asignacion', methods=['POST'])
-def enviar_asignacion():
-    data = request.json
-    nombre_input = data.get('nombre')
-    fila = data.get('fila')
-    sector = data.get('sector')
-    telefono_nuevo = data.get('telefono')
-
-    hermano = buscar_hermano(nombre_input)
-
-    # Si no existe, lo creamos con el teléfono que envió el prompt del HTML
-    if not hermano and telefono_nuevo:
-        if guardar_nuevo_en_json(nombre_input, telefono_nuevo):
-            hermano = {"nombre": nombre_input, "telefono": telefono_nuevo}
-
-    if not hermano:
-        return jsonify({"status": "not_found", "message": "No existe"}), 404
-
-    exito, mensaje = verificar_disponibilidad_y_registrar(hermano['nombre'], fila, sector)
-    if not exito:
-        return jsonify({"status": "error", "message": mensaje}), 400
-
-    # Generar link de WhatsApp
-    base_url = request.host_url.rstrip('/')
-    link_mapa = f"{base_url}/?fila={fila}&readOnly=true"
-    msj = f"Hola {hermano['nombre']}, Fila: {fila}, Sector: {sector}. Mapa: {link_mapa}"
-    url_whatsapp = f"https://wa.me/{hermano['telefono']}?text={urllib.parse.quote(msj)}"
-    
-    return jsonify({"status": "success", "url_whatsapp": url_whatsapp})
-
-# --- PANEL DE ADMINISTRACIÓN Y CONTROL ---
-
+# 2. Cargar el Tablero (Nuevo archivo separado)
 @app.route('/tablero')
 def tablero():
     registros = []
     if os.path.exists(EXCEL_FILE):
         df = pd.read_excel(EXCEL_FILE, engine='openpyxl')
-        # Convertimos el Excel a una lista de diccionarios para el HTML
         registros = df.to_dict(orient='records')
-    
-    # Esto busca el archivo tablero.html en la carpeta 'templates'
     return render_template('tablero.html', registros=registros)
 
+# 3. Guardar Registro (Lo que envía el botón azul del mapa)
+@app.route('/enviar_asignacion', methods=['POST'])
+def enviar_asignacion():
+    try:
+        data = request.json
+        nombre = data.get('nombre')
+        fila = str(data.get('fila'))
+        sector = data.get('sector')
+
+        if not os.path.exists(EXCEL_FILE):
+            df = pd.DataFrame(columns=['Nombre', 'Fila', 'Sector'])
+        else:
+            df = pd.read_excel(EXCEL_FILE, engine='openpyxl')
+
+        # Verificar si la fila ya existe
+        if fila in df['Fila'].astype(str).values:
+            return jsonify({"status": "error", "message": "Fila ya ocupada"}), 400
+
+        # Guardar
+        nuevo = pd.DataFrame([[nombre, fila, sector]], columns=['Nombre', 'Fila', 'Sector'])
+        df = pd.concat([df, nuevo], ignore_index=True)
+        df.to_excel(EXCEL_FILE, index=False, engine='openpyxl')
+
+        # Link de WhatsApp
+        url_wa = f"https://wa.me/?text=Hola%20{nombre},%20tu%20fila%20es%20{fila}%20Sector%20{sector}"
+        return jsonify({"status": "success", "url_whatsapp": url_wa})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# 4. Eliminar Registro (Botón Liberar del tablero)
 @app.route('/eliminar_registro/<fila>', methods=['DELETE'])
 def eliminar_registro(fila):
-    try:
-        if os.path.exists(EXCEL_FILE):
-            df = pd.read_excel(EXCEL_FILE, engine='openpyxl')
-            df = df[df['Fila'].astype(str) != str(fila)]
-            df.to_excel(EXCEL_FILE, index=False, engine='openpyxl')
-            return jsonify({"status": "success"})
-    except: pass
+    if os.path.exists(EXCEL_FILE):
+        df = pd.read_excel(EXCEL_FILE, engine='openpyxl')
+        df = df[df['Fila'].astype(str) != str(fila)]
+        df.to_excel(EXCEL_FILE, index=False, engine='openpyxl')
+        return jsonify({"status": "success"})
     return jsonify({"status": "error"}), 400
 
+# 5. Reset Total
 @app.route('/reset_total_sistema')
 def reset_total():
     if os.path.exists(EXCEL_FILE):
         os.remove(EXCEL_FILE)
-    return "<h1>Sistema Limpiado.</h1><a href='/tablero'>Volver</a>"
+    return redirect('/tablero')
 
-# Ejecución
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(debug=True)
+
+
 
 
