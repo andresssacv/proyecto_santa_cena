@@ -620,7 +620,6 @@
                                         })}
                                     </div>
                                 </div>
-                                </div>
 
                                 {/* --- COMIENZA EL BOTÓN NUEVO --- */}
                                 {!readOnly && (
@@ -653,13 +652,14 @@
                             </div>
                         </div>
                         
-                        <div className="absolute bottom-2 right-4 z-40 opacity-40 pointer-events-none">
-                            <span className="text-[8px] font-bold text-slate-400 uppercase">Sistema Santa Cena 2026</span>
+                        <div className="absolute bottom-4 right-6 z-40 opacity-40 pointer-events-none">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Sistema Santa Cena 2026</span>
                         </div>
                     </div>
                 </div>
             );
         };
+
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
