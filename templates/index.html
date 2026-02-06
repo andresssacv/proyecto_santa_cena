@@ -187,39 +187,59 @@
             }, []);
 
             // Busca donde definiste los estados y pega esto:
-            const enviarAlBackend = async (telefonoAdicional = null) => {
+            const enviarAlBackend = async () => {
+                // Verificamos que los datos básicos estén
                 if (!nombreHermano || !trayNumber) {
-                    alert("Por favor ingrese nombre y fila.");
+                    alert("Por favor, selecciona un sector en el mapa e ingresa el nombre.");
                     return;
                 }
-            
+    
+                // Preparamos el paquete de datos
+                // Busca la función enviarAlBackend y cambia el payload:
                 const payload = { 
                     nombre: nombreHermano, 
                     fila: trayNumber, 
-                    sector: selectedId 
+                    sector: selectedId, // Asegúrate de que diga 'sector' para que Python lo entienda
+                    telefono: telefonoAdicional 
                 };
-            
+    
                 try {
+                    // RUTA RELATIVA: Esto es lo que hace que funcione en Render
+                    // Al no poner "http://...", el navegador busca el API en el mismo dominio de la web
                     const response = await fetch('/enviar_asignacion', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
-            
+    
                     const data = await response.json();
-            
+    
                     if (data.status === 'success') {
-                        // Esto es lo que abre WhatsApp en una pestaña nueva
-                        window.open(data.url_whatsapp, '_blank');
-                        alert("¡Registro exitoso! Redirigiendo a WhatsApp...");
+                        // Si todo sale bien, abrimos la URL de WhatsApp que nos mandó el Python
+                        window.location.href = data.url_whatsapp;
+                    } else if (data.status === 'not_found') {
+                        // Si el hermano no está en el JSON, pedimos el teléfono aquí mismo
+                        const tel = prompt("Hermano no registrado. Ingresa su número de WhatsApp (ej: 56912345678):");
+                        if (tel) {
+                            payload.telefono = tel;
+                            // Reintentamos el envío ahora con el teléfono incluido
+                            const retryResponse = await fetch('/enviar_asignacion', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+                            const retryData = await retryResponse.json();
+                            if (retryData.url_whatsapp) window.location.href = retryData.url_whatsapp;
+                        }
                     } else {
-                        alert("Error: " + data.message);
+                        alert("Error del servidor: " + (data.message || "Error desconocido"));
                     }
                 } catch (error) {
-                    console.error("Error:", error);
-                    alert("Error al conectar con el servidor. Revisa tu conexión.");
+                    console.error("Error de conexión:", error);
+                    alert("Error crítico: No se pudo conectar con el servidor de Render. Revisa que el servicio esté 'Live'.");
                 }
             };
+            
             // --- HASTA AQUÍ ---
             
             
@@ -618,4 +638,3 @@
     </script>
 </body>
 </html>
-
