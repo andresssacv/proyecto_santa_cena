@@ -77,8 +77,8 @@ def enviar_asignacion():
         return jsonify({"status": "error", "message": mensaje}), 400
 
 # Generar WhatsApp
-    # Usamos 127.0.0.1 que es más estable que localhost para rutas locales
-    link_mapa = f"http://127.0.0.1:5500/fronted_santacena.html?fila={fila}&readOnly=true"    
+    # Asumiendo que en Render le pondrás "santa-cena-app"
+    link_mapa = f"https://santa-cena-app.onrender.com/?fila={fila}&readOnly=true"    
     
     msj = f"Hola {hermano['nombre']}, tu ubicación para la Santa Cena es:\n📍 Fila: {fila}\nSector: {sector}\n\nMira tu mapa aquí: {link_mapa}"
     url_wsp = f"https://wa.me/{hermano['telefono']}?text={urllib.parse.quote(msj)}"
@@ -88,3 +88,4 @@ def enviar_asignacion():
 if __name__ == '__main__':
 
     app.run(debug=True, port=5000)
+
