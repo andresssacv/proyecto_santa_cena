@@ -59,13 +59,16 @@
 
     <script>
         async function liberarFila(fila) {
-            if(!confirm('¿Liberar la fila ' + fila + '?')) return;
+            if(!confirm('¿Seguro que quieres liberar la fila ' + fila + '?')) return;
             
+            // Llamamos a la ruta de Python que acabamos de configurar
             const res = await fetch('/eliminar_registro/' + fila, { method: 'DELETE' });
+            
             if(res.ok) {
-                location.reload(); // Recarga la lista automáticamente
+                // Si Python dice que todo ok, recargamos la lista
+                window.location.reload();
             } else {
-                alert('Error al liberar');
+                alert('No se pudo borrar el registro');
             }
         }
     </script>
