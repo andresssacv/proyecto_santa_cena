@@ -3,6 +3,7 @@ from flask_cors import CORS
 import pandas as pd
 import os
 import urllib.parse
+import json
 
 app = Flask(__name__)
 CORS(app)
@@ -15,27 +16,34 @@ def index():
     # Flask buscará 'index.html' dentro de la carpeta 'templates'
     return render_template('index.html')
 
-def obtener_telefono(nombre):
+def obtener_telefono(nombre_buscado):
     if os.path.exists(JSON_FILE):
         with open(JSON_FILE, 'r', encoding='utf-8') as f:
             try:
                 datos = json.load(f)
-                # Buscamos ignorando mayúsculas/minúsculas
-                return datos.get(nombre.strip().upper())
-            except: return None
+                # Como es una lista, iteramos para buscar el nombre
+                for contacto in datos:
+                    if contacto['nombre'].strip().upper() == nombre_buscado.strip().upper():
+                        return contacto['telefono']
+            except Exception as e:
+                print(f"Error leyendo JSON: {e}")
     return None
 
 def guardar_telefono(nombre, telefono):
-    datos = {}
+    datos = []
     if os.path.exists(JSON_FILE):
         with open(JSON_FILE, 'r', encoding='utf-8') as f:
             try: datos = json.load(f)
-            except: datos = {}
+            except: datos = []
     
-    datos[nombre.strip().upper()] = telefono
+    # Añadimos el nuevo contacto al formato de lista
+    datos.append({
+        "nombre": nombre.strip(),
+        "telefono": str(telefono).strip()
+    })
+    
     with open(JSON_FILE, 'w', encoding='utf-8') as f:
         json.dump(datos, f, indent=4, ensure_ascii=False)
-
 @app.route('/enviar_asignacion', methods=['POST'])
 def enviar_asignacion():
     try:
@@ -86,5 +94,6 @@ def enviar_asignacion():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
 
 
