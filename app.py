@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 import pandas as pd
 import os
@@ -13,9 +13,9 @@ EXCEL_FILE = 'registros_santa_cena.xlsx'
 # 1. RUTA PARA MOSTRAR EL MAPA
 @app.route('/')
 def index():
-    # Sirve el archivo index (7).html desde la raíz del proyecto
-    # Asegúrate de que tu archivo en GitHub se llame exactamente index.html
-    return send_from_directory('.', 'index.html')
+    # Como tienes el archivo en la carpeta 'templates', usamos render_template
+    # Flask buscará automáticamente dentro de la carpeta 'templates'
+    return render_template('index.html')
 
 # 2. RUTA PARA RECIBIR EL REGISTRO
 @app.route('/enviar_asignacion', methods=['POST'])
@@ -24,7 +24,6 @@ def enviar_asignacion():
         data = request.json
         nombre = data.get('nombre')
         fila = str(data.get('fila'))
-        # En tu index(7).html envías 'sector', aquí lo recibimos
         sector = data.get('sector', 'N/A')
 
         if not nombre or not fila:
@@ -47,7 +46,6 @@ def enviar_asignacion():
 
         # Generar mensaje para WhatsApp
         mensaje_wa = f"✅ *Registro Exitoso*\n\nHermano(a): *{nombre}*\nFila: *{fila}*\nSector: *{sector}*"
-        # Codificar el mensaje para que sea un link válido
         mensaje_url = urllib.parse.quote(mensaje_wa)
         url_whatsapp = f"https://wa.me/?text={mensaje_url}"
 
@@ -61,6 +59,5 @@ def enviar_asignacion():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == '__main__':
-    # Usar el puerto que asigna Render o 5000 por defecto
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
