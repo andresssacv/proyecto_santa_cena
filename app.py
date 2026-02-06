@@ -61,13 +61,6 @@ def guardar_nuevo_en_json(nombre, telefono):
     except: return False
 
 # --- RUTAS DE LA PÁGINA ---
-from flask import Flask, request, jsonify, render_template, redirect
-import pandas as pd
-import os
-
-app = Flask(__name__)
-
-EXCEL_FILE = 'registros_santa_cena.xlsx'
 
 # 1. Cargar el Mapa
 @app.route('/')
@@ -88,29 +81,39 @@ def tablero():
 def enviar_asignacion():
     try:
         data = request.json
+        # Extraemos los datos usando los nombres exactos que enviará el HTML
         nombre = data.get('nombre')
         fila = str(data.get('fila'))
-        sector = data.get('sector')
+        sector = data.get('sector', 'N/A') # Si no hay sector, ponemos N/A
 
+        if not nombre or not fila:
+            return jsonify({"status": "error", "message": "Faltan datos"}), 400
+
+        # Cargar o crear Excel
         if not os.path.exists(EXCEL_FILE):
             df = pd.DataFrame(columns=['Nombre', 'Fila', 'Sector'])
         else:
             df = pd.read_excel(EXCEL_FILE, engine='openpyxl')
 
-        # Verificar si la fila ya existe
+        # Verificar si la fila ya está ocupada
         if fila in df['Fila'].astype(str).values:
-            return jsonify({"status": "error", "message": "Fila ya ocupada"}), 400
+            return jsonify({"status": "error", "message": "Esta fila ya está ocupada"}), 400
 
-        # Guardar
+        # Guardar registro
         nuevo = pd.DataFrame([[nombre, fila, sector]], columns=['Nombre', 'Fila', 'Sector'])
         df = pd.concat([df, nuevo], ignore_index=True)
         df.to_excel(EXCEL_FILE, index=False, engine='openpyxl')
 
-        # Link de WhatsApp
-        url_wa = f"https://wa.me/?text=Hola%20{nombre},%20tu%20fila%20es%20{fila}%20Sector%20{sector}"
+        # --- GENERAR MENSAJE DE WHATSAPP ---
+        texto_wa = f"✅ *Asignación Santa Cena 2026*\n\nHola Hermano(a) *{nombre}*,\nTu fila asignada es la: *{fila}*\nSector: *{sector}*\n\n_Favor de llegar con 15 min de anticipación._"
+        texto_codificado = urllib.parse.quote(texto_wa)
+        url_wa = f"https://wa.me/?text={texto_codificado}"
+
         return jsonify({"status": "success", "url_whatsapp": url_wa})
+
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        print(f"Error en el servidor: {e}")
+        return jsonify({"status": "error", "message": "Error interno del servidor"}), 500
 
 # 4. Eliminar Registro (Botón Liberar del tablero)
 @app.route('/eliminar_registro/<fila>', methods=['DELETE'])
@@ -131,6 +134,7 @@ def reset_total():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
