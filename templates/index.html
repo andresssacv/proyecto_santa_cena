@@ -200,7 +200,7 @@
                 };
 
                 try {
-                    let response = await fetch('http://genie-dextro-remi.ngrok-free.dev/enviar_asignacion', {
+                    let response = await fetch('/enviar_asignacion', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
