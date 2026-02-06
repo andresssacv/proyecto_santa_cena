@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, render_template
 from flask_cors import CORS
 import json
 import urllib.parse
@@ -72,10 +72,13 @@ def index():
 def tablero():
     registros = []
     if os.path.exists(EXCEL_FILE):
+        # Leemos el Excel para mandárselo al nuevo archivo HTML
         df = pd.read_excel(EXCEL_FILE, engine='openpyxl')
         registros = df.to_dict(orient='records')
+    
+    # Esto le dice a Python: "Busca tablero.html en la carpeta templates"
     return render_template('tablero.html', registros=registros)
-
+    
 # 3. Guardar Registro (Lo que envía el botón azul del mapa)
 @app.route('/enviar_asignacion', methods=['POST'])
 def enviar_asignacion():
@@ -118,11 +121,15 @@ def enviar_asignacion():
 # 4. Eliminar Registro (Botón Liberar del tablero)
 @app.route('/eliminar_registro/<fila>', methods=['DELETE'])
 def eliminar_registro(fila):
-    if os.path.exists(EXCEL_FILE):
-        df = pd.read_excel(EXCEL_FILE, engine='openpyxl')
-        df = df[df['Fila'].astype(str) != str(fila)]
-        df.to_excel(EXCEL_FILE, index=False, engine='openpyxl')
-        return jsonify({"status": "success"})
+    try:
+        if os.path.exists(EXCEL_FILE):
+            df = pd.read_excel(EXCEL_FILE, engine='openpyxl')
+            # Filtramos para quitar la fila que queremos borrar
+            df = df[df['Fila'].astype(str) != str(fila)]
+            df.to_excel(EXCEL_FILE, index=False, engine='openpyxl')
+            return jsonify({"status": "success"})
+    except Exception as e:
+        print(f"Error al borrar: {e}")
     return jsonify({"status": "error"}), 400
 
 # 5. Reset Total
@@ -134,6 +141,7 @@ def reset_total():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
