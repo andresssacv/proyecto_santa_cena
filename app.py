@@ -47,7 +47,7 @@ def obtener_telefono(nombre):
 def guardar_telefono(nombre, telefono):
     supabase.table("contactos").insert({
         "nombre": nombre.strip(),
-        "telefono": telefono.strip()
+        "telefono": str(telefono).strip()
     }).execute()
 
 # ======================
@@ -77,35 +77,57 @@ def guardar_registro(nombre, fila, sector):
 @app.route('/enviar_asignacion', methods=['POST'])
 def enviar_asignacion():
     try:
-        data = request.json
+        data = request.get_json()
 
-        nombre = str(data.get("nombre", "")).strip()
-        telefono = str(data.get("telefono", "")).strip()
-        fila = str(data.get("fila", "")).strip()
-        servidor = str(data.get("servidor", "")).strip()
+        nombre = data.get('nombre')
+        fila = str(data.get('fila'))
+        sector = data.get('sector')
+        telefono_enviado = data.get('telefono')
 
-        if not nombre or not fila:
-            return jsonify({"status": "error", "message": "Nombre y fila requeridos"}), 400
+        if not nombre or not fila or not sector:
+            return jsonify({"status": "error", "message": "Faltan datos requeridos"}), 400
 
-        telefono_destino = obtener_telefono(nombre)
+        # --- BUSCAR TELÉFONO EN SUPABASE ---
+        contacto = supabase.table("contactos").select("telefono").eq("nombre", nombre).execute()
 
+        telefono_destino = None
+
+        if contacto.data and len(contacto.data) > 0:
+            telefono_destino = contacto.data[0]["telefono"]
+
+        # --- SI NO EXISTE, PEDIR TELÉFONO ---
         if not telefono_destino:
             if not telefono_enviado:
-                return jsonify({"status": "need_phone"})
-            guardar_telefono(nombre, telefono_enviado)
-            telefono_destino = telefono_enviado
+                return jsonify({
+                    "status": "need_phone",
+                    "message": "Hermano no encontrado. Ingrese teléfono."
+                })
 
-        if fila_ocupada(fila):
+            telefono_destino = str(telefono_enviado).strip()
+
+            supabase.table("contactos").insert({
+                "nombre": nombre.strip(),
+                "telefono": telefono_destino
+            }).execute()
+
+        # --- VALIDAR FILA REPETIDA ---
+        fila_existente = supabase.table("registros") \
+            .select("id") \
+            .eq("fila", fila) \
+            .execute()
+
+        if fila_existente.data:
             return jsonify({"status": "error", "message": "Fila ya ocupada"}), 400
 
-        guardar_registro(nombre, fila, sector)
+        # --- GUARDAR REGISTRO ---
+        supabase.table("registros").insert({
+            "nombre": nombre.strip(),
+            "fila": fila,
+            "sector": sector
+        }).execute()
 
-        mensaje = (
-            f"✅ *Registro Santa Cena 2026*\n\n"
-            f"Hola Hermano(a) *{nombre}*,\n"
-            f"📍 *Sector {sector}*\n"
-            f"🪑 *Fila {fila}*"
-        )
+        # --- LINK WHATSAPP ---
+        mensaje = f"✅ *Registro Santa Cena 2026*\n\nHola Hermano(a) *{nombre}*,\nSu lugar asignado es:\n📍 *Sector {sector}*\n🪑 *Fila {fila}*"
 
         url_wa = f"https://wa.me/{telefono_destino}?text={urllib.parse.quote(mensaje)}"
 
@@ -113,6 +135,7 @@ def enviar_asignacion():
 
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
 
 # ======================
 # ADMIN API
@@ -167,4 +190,5 @@ def admin_export():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
 
