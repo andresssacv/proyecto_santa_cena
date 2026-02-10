@@ -51,7 +51,7 @@ def guardar_telefono(nombre, telefono):
     }).execute()
 
 # ======================
-# REGISTROS FUNCTIONS
+# registro FUNCTIONS
 # ======================
 
 def fila_ocupada(fila):
@@ -111,7 +111,7 @@ def enviar_asignacion():
             }).execute()
 
         # --- VALIDAR FILA REPETIDA ---
-        fila_existente = supabase.table("registros") \
+        fila_existente = supabase.table("registros_santa_cena") \
             .select("id") \
             .eq("fila", fila) \
             .execute()
@@ -120,7 +120,7 @@ def enviar_asignacion():
             return jsonify({"status": "error", "message": "Fila ya ocupada"}), 400
 
         # --- GUARDAR REGISTRO ---
-        supabase.table("registros").insert({
+        supabase.table("registros_santa_cena").insert({
             "nombre": nombre.strip(),
             "fila": fila,
             "sector": sector
@@ -190,5 +190,6 @@ def admin_export():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
 
 
