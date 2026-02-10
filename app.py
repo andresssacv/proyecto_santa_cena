@@ -77,12 +77,12 @@ def guardar_registro(nombre, fila, sector):
 @app.route('/enviar_asignacion', methods=['POST'])
 def enviar_asignacion():
     try:
-        data = request.get_json()
+        data = request.json
 
-        nombre = data.get("nombre")
-        fila = str(data.get("fila"))
-        sector = data.get("sector")
-        telefono_enviado = data.get("telefono")
+        nombre = str(data.get("nombre", "")).strip()
+        telefono = str(data.get("telefono", "")).strip()
+        fila = str(data.get("fila", "")).strip()
+        servidor = str(data.get("servidor", "")).strip()
 
         if not nombre or not fila:
             return jsonify({"status": "error", "message": "Nombre y fila requeridos"}), 400
@@ -167,3 +167,4 @@ def admin_export():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
