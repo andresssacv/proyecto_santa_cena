@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Admin Santa Cena</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body { font-family: Arial; background:#f4f6f8; padding:20px; }
+.container { max-width:1000px; margin:auto; background:white; padding:20px; border-radius:12px; }
+table { width:100%; border-collapse:collapse; margin-top:15px; }
+td, th { padding:8px; border-bottom:1px solid #ddd; }
+button { padding:6px 10px; border:none; border-radius:6px; cursor:pointer; }
+.delete { background:red; color:white; }
+.reset { background:orange; color:white; }
+.export { background:#2563eb; color:white; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h2>Panel Admin — Registros Santa Cena</h2>
+
+  <button class="reset" onclick="resetAll()">Reset Total</button>
+  <button class="export" onclick="exportCSV()">Exportar CSV</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Fila</th>
+        <th>Sector</th>
+        <th>Fecha</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody id="tabla"></tbody>
+  </table>
+</div>
+
+<script>
+async function cargar() {
+  const res = await fetch("/admin/listar");
+  const data = await res.json();
+  const tabla = document.getElementById("tabla");
+  tabla.innerHTML = "";
+
+  data.forEach(r => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${r.nombre}</td>
+      <td>${r.fila}</td>
+      <td>${r.sector}</td>
+      <td>${new Date(r.created_at).toLocaleString()}</td>
+      <td><button class="delete" onclick="borrar(${r.id})">Borrar</button></td>
+    `;
+    tabla.appendChild(tr);
+  });
+}
+
+async function borrar(id) {
+  if (!confirm("Eliminar registro?")) return;
+
+  await fetch("/admin/borrar", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({id})
+  });
+
+  cargar();
+}
+
+async function resetAll() {
+  if (!confirm("RESET TOTAL?")) return;
+
+  await fetch("/admin/reset", { method:"POST" });
+  cargar();
+}
+
+function exportCSV() {
+  window.open("/admin/export");
+}
+
+cargar();
+</script>
+
+</body>
+</html>
