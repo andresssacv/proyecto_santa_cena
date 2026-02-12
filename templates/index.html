@@ -38,6 +38,7 @@
         @media (max-width: 767px) {
             .scale-container { box-shadow: 0 10px 24px rgba(0,0,0,0.18); }
         }
+
         .capture-canvas {
             width: 1280px;
             height: 720px;
@@ -313,7 +314,8 @@
                 const y = 360 - (targetY * zoomLevel);
                 setViewTransform({ x, y, k: zoomLevel });
             };
-             // En links de visualización (fila en URL / readOnly), acercar automáticamente al sector asignado
+
+            // En links de visualización (fila en URL / readOnly), acercar automáticamente al sector asignado
             useEffect(() => {
                 if (!activeData) return;
                 if (!(esModoLectura || filaDeUrl)) return;
@@ -528,7 +530,7 @@
                     {/* --- CANVAS --- */}
                     <div className="scale-container" style={{ transform: `scale(${scale})` }} ref={containerRef}>
                         <div 
-                            className{`capture-canvas ${esModoLectura ? 'cursor-default' : ''}`}
+                            className={`capture-canvas ${esModoLectura ? 'cursor-default' : ''}`}
                             onMouseDown={handlePointerDown}
                             onMouseMove={handlePointerMove}
                             onMouseUp={handlePointerUp}
@@ -664,3 +666,6 @@
     </script>
 </body>
 </html>
+
+
+nl -ba app.py | sed -n '1,260p'
