@@ -35,6 +35,9 @@
             transition: transform 0.3s ease-out;
         }
 
+        @media (max-width: 767px) {
+            .scale-container { box-shadow: 0 10px 24px rgba(0,0,0,0.18); }
+        }
         .capture-canvas {
             width: 1280px;
             height: 720px;
@@ -282,7 +285,12 @@
                         const targetHeight = 720;
                         const scaleW = windowWidth / targetWidth;
                         const scaleH = windowHeight / targetHeight;
-                        const newScale = Math.min(scaleW, scaleH) * 0.95;
+                        const isMobile = windowWidth < 768;
+                        const isTablet = windowWidth >= 768 && windowWidth < 1100;
+                        const baseScale = Math.min(scaleW, scaleH);
+                        const responsiveBoost = isMobile ? 3.2 : (isTablet ? 1.45 : 0.95);
+                        const maxScale = isMobile ? 1.35 : (isTablet ? 1.2 : 1.0);
+                        const newScale = Math.max(0.4, Math.min(baseScale * responsiveBoost, maxScale));
                         setScale(newScale);
                     }
                 };
@@ -305,9 +313,17 @@
                 const y = 360 - (targetY * zoomLevel);
                 setViewTransform({ x, y, k: zoomLevel });
             };
+             // En links de visualización (fila en URL / readOnly), acercar automáticamente al sector asignado
+            useEffect(() => {
+                if (!activeData) return;
+                if (!(esModoLectura || filaDeUrl)) return;
+                const timer = setTimeout(() => performZoomToSector(activeData), 120);
+                return () => clearTimeout(timer);
+            }, [activeData, esModoLectura, filaDeUrl, scale]);
 
             // Helpers de interacción
             const handlePointerDown = (e) => {
+                if (esModoLectura) return;
                 if(e.target.closest('.control-panel')) return;
                 if (document.activeElement && document.activeElement.tagName === 'INPUT') document.activeElement.blur();
                 setIsAnimating(false);
@@ -318,6 +334,7 @@
             };
 
             const handlePointerMove = (e) => {
+                if (esModoLectura) return;
                 if (!isDragging) return;
                 e.preventDefault();
                 const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -511,7 +528,7 @@
                     {/* --- CANVAS --- */}
                     <div className="scale-container" style={{ transform: `scale(${scale})` }} ref={containerRef}>
                         <div 
-                            className="capture-canvas"
+                            className{`capture-canvas ${esModoLectura ? 'cursor-default' : ''}`}
                             onMouseDown={handlePointerDown}
                             onMouseMove={handlePointerMove}
                             onMouseUp={handlePointerUp}
