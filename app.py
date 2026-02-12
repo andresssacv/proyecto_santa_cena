@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, render_template, send_file
 from flask_cors import CORS
 from supabase import create_client
+from itsdangerous import URLSafeSerializer, BadSignature
 import urllib.parse
 import os
 import pandas as pd
@@ -18,6 +19,27 @@ if not SUPABASE_URL or not SUPABASE_KEY:
     raise Exception("Supabase credentials missing")
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+token_serializer = URLSafeSerializer(os.getenv("ASSIGNATION_LINK_SECRET", SUPABASE_KEY))
+
+
+def obtener_mesa_label(sector):
+    """Retorna el nombre de mesa/mesón en base al sector."""
+    try:
+        sector_id = int(sector)
+    except (TypeError, ValueError):
+        return "No definida"
+
+    meson_norte = {1, 2, 5}
+    meson_sur = {7, 9, 11, 12}
+    meson_entrada = {3, 4, 6, 8, 10, 13, 14}
+
+    if sector_id in meson_norte:
+        return "Mesón Norte"
+    if sector_id in meson_sur:
+        return "Mesón Sur"
+    if sector_id in meson_entrada:
+        return "Mesón Entrada"
+    return "No definida"
 
 # ======================
 # FRONTEND ROUTES
@@ -30,6 +52,20 @@ def index():
 @app.route('/admin')
 def admin():
     return render_template('admin.html')
+
+
+@app.route('/ver_asignacion/<token>')
+def ver_asignacion(token):
+    try:
+        payload = token_serializer.loads(token)
+    except BadSignature:
+        return "Link inválido o expirado", 400
+
+    fila = str(payload.get("fila", "")).strip()
+    if not fila:
+        return "Asignación inválida", 400
+
+    return render_template('ver_asignacion.html', fila_asignada=fila)
 
 # ======================
 # CONTACTS FUNCTIONS
@@ -127,7 +163,19 @@ def enviar_asignacion():
         }).execute()
 
         # --- LINK WHATSAPP ---
-        mensaje = f"✅ *Registro Santa Cena 2026*\n\nHola Hermano(a) *{nombre}*,\nSu lugar asignado es:\n📍 *Sector {sector}*\n🪑 *Fila {fila}*"
+        mesa_label = obtener_mesa_label(sector)
+        token = token_serializer.dumps({"fila": fila})
+        link_visualizacion = f"{request.host_url.rstrip('/')}/ver_asignacion/{token}"
+
+        mensaje = (
+            f"✅ *Registro Santa Cena 2026*\n\n"
+            f"Hola Hermano(a) *{nombre}*,\n"
+            f"Su lugar asignado es:\n"
+            f"📍 *Sector {sector}*\n"
+            f"🧭 *Mesa: {mesa_label}*\n"
+            f"🪑 *Fila {fila}*\n\n"
+            f"🔎 Ver mapa interactivo (solo lectura):\n{link_visualizacion}"
+        )
 
         url_wa = f"https://wa.me/{telefono_destino}?text={urllib.parse.quote(mensaje)}"
 

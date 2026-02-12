@@ -35,6 +35,10 @@
             transition: transform 0.3s ease-out;
         }
 
+        @media (max-width: 767px) {
+            .scale-container { box-shadow: 0 10px 24px rgba(0,0,0,0.18); }
+        }
+
         .capture-canvas {
             width: 1280px;
             height: 720px;
@@ -282,7 +286,12 @@
                         const targetHeight = 720;
                         const scaleW = windowWidth / targetWidth;
                         const scaleH = windowHeight / targetHeight;
-                        const newScale = Math.min(scaleW, scaleH) * 0.95;
+                        const isMobile = windowWidth < 768;
+                        const isTablet = windowWidth >= 768 && windowWidth < 1100;
+                        const baseScale = Math.min(scaleW, scaleH);
+                        const responsiveBoost = isMobile ? 3.2 : (isTablet ? 1.45 : 0.95);
+                        const maxScale = isMobile ? 1.35 : (isTablet ? 1.2 : 1.0);
+                        const newScale = Math.max(0.4, Math.min(baseScale * responsiveBoost, maxScale));
                         setScale(newScale);
                     }
                 };
@@ -291,6 +300,38 @@
                 return () => window.removeEventListener('resize', handleResize);
             }, []);
 
+            const clampTransform = (x, y, k) => {
+                const canvasW = 1280;
+                const canvasH = 720;
+                const scaledW = canvasW * k;
+                const scaledH = canvasH * k;
+
+                let minX, maxX, minY, maxY;
+                if (scaledW <= canvasW) {
+                    const centeredX = (canvasW - scaledW) / 2;
+                    minX = centeredX;
+                    maxX = centeredX;
+                } else {
+                    minX = canvasW - scaledW;
+                    maxX = 0;
+                }
+
+                if (scaledH <= canvasH) {
+                    const centeredY = (canvasH - scaledH) / 2;
+                    minY = centeredY;
+                    maxY = centeredY;
+                } else {
+                    minY = canvasH - scaledH;
+                    maxY = 0;
+                }
+
+                return {
+                    x: Math.min(maxX, Math.max(minX, x)),
+                    y: Math.min(maxY, Math.max(minY, y)),
+                    k
+                };
+            };
+
             // Función manual de zoom
             const performZoomToSector = (sector) => {
                 if (!sector) return;
@@ -298,13 +339,21 @@
                 const canvasW = 1280;
                 const canvasH = 720;
                 const isMobile = window.innerWidth < 768;
-                const zoomLevel = isMobile ? 2.8 : (scale < 0.6 ? 2.5 : 1.8);
+                const zoomLevel = esModoLectura ? (isMobile ? 1.45 : 1.25) : (isMobile ? 2.25 : (scale < 0.6 ? 2.3 : 1.75));
                 const targetX = (sector.cx / 100) * canvasW;
                 const targetY = (sector.cy / 100) * canvasH;
                 const x = 640 - (targetX * zoomLevel);
                 const y = 360 - (targetY * zoomLevel);
-                setViewTransform({ x, y, k: zoomLevel });
+                setViewTransform(clampTransform(x, y, zoomLevel));
             };
+
+            // En links de visualización (fila en URL / readOnly), acercar automáticamente al sector asignado
+            useEffect(() => {
+                if (!activeData) return;
+                if (!(esModoLectura || filaDeUrl)) return;
+                const timer = setTimeout(() => performZoomToSector(activeData), 120);
+                return () => clearTimeout(timer);
+            }, [activeData, esModoLectura, filaDeUrl, scale]);
 
             // Helpers de interacción
             const handlePointerDown = (e) => {
@@ -324,7 +373,7 @@
                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
                 const dx = clientX - dragStart.x;
                 const dy = clientY - dragStart.y;
-                setViewTransform(prev => ({ ...prev, x: prev.x + (dx / scale), y: prev.y + (dy / scale) }));
+                setViewTransform(prev => clampTransform(prev.x + (dx / scale), prev.y + (dy / scale), prev.k));
                 setDragStart({ x: clientX, y: clientY });
             };
 
@@ -333,7 +382,7 @@
             const resetZoom = (e) => {
                 e && e.stopPropagation();
                 setIsAnimating(true);
-                setViewTransform({ x: 0, y: 0, k: 1 });
+                setViewTransform(clampTransform(0, 0, 1));
                 // Se ha mantenido la lógica de NO borrar la selección aquí
             };
 
@@ -390,6 +439,9 @@
                                 <button onClick={resetZoom} className="bg-slate-100 text-slate-600 px-3 py-2 rounded-xl text-xs font-bold hover:bg-slate-200 border border-slate-300 whitespace-nowrap">
                                     Ver Todo
                                 </button>
+                                <a href="/admin" target="_blank" rel="noopener noreferrer" className="bg-indigo-600 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 whitespace-nowrap">
+                                    Admin
+                                </a>
                                 <button onClick={() => setShowControls(false)} className="bg-slate-800 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-slate-900 whitespace-nowrap">
                                     Ocultar
                                 </button>
