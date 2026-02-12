@@ -21,6 +21,26 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 token_serializer = URLSafeSerializer(os.getenv("ASSIGNATION_LINK_SECRET", SUPABASE_KEY))
 
+
+def obtener_mesa_label(sector):
+    """Retorna el nombre de mesa/mesón en base al sector."""
+    try:
+        sector_id = int(sector)
+    except (TypeError, ValueError):
+        return "No definida"
+
+    meson_norte = {1, 2, 5}
+    meson_sur = {7, 9, 11, 12}
+    meson_entrada = {3, 4, 6, 8, 10, 13, 14}
+
+    if sector_id in meson_norte:
+        return "Mesón Norte"
+    if sector_id in meson_sur:
+        return "Mesón Sur"
+    if sector_id in meson_entrada:
+        return "Mesón Entrada"
+    return "No definida"
+
 # ======================
 # FRONTEND ROUTES
 # ======================
@@ -143,6 +163,7 @@ def enviar_asignacion():
         }).execute()
 
         # --- LINK WHATSAPP ---
+        mesa_label = obtener_mesa_label(sector)
         token = token_serializer.dumps({"fila": fila})
         link_visualizacion = f"{request.host_url.rstrip('/')}/ver_asignacion/{token}"
 
@@ -151,6 +172,7 @@ def enviar_asignacion():
             f"Hola Hermano(a) *{nombre}*,\n"
             f"Su lugar asignado es:\n"
             f"📍 *Sector {sector}*\n"
+            f"🧭 *Mesa: {mesa_label}*\n"
             f"🪑 *Fila {fila}*\n\n"
             f"🔎 Ver mapa interactivo (solo lectura):\n{link_visualizacion}"
         )
@@ -216,6 +238,8 @@ def admin_export():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
+
 
 
 
