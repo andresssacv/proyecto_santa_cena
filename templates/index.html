@@ -386,6 +386,23 @@
                 // Se ha mantenido la lógica de NO borrar la selección aquí
             };
 
+            const adjustZoom = (factor) => {
+                setIsAnimating(true);
+                setViewTransform(prev => {
+                    const minK = 1;
+                    const maxK = esModoLectura ? 2.2 : 3.0;
+                    const nextK = Math.max(minK, Math.min(maxK, prev.k * factor));
+
+                    const centerX = 640;
+                    const centerY = 360;
+                    const worldX = (centerX - prev.x) / prev.k;
+                    const worldY = (centerY - prev.y) / prev.k;
+                    const nextX = centerX - (worldX * nextK);
+                    const nextY = centerY - (worldY * nextK);
+                    return clampTransform(nextX, nextY, nextK);
+                });
+            };
+
             // Dibujo de rutas
             const createRoundedPath = (points, width, height, radius = 20) => {
                 if (points.length < 2) return "";
@@ -555,6 +572,14 @@
                         <button onClick={() => setShowControls(true)} className="fixed top-4 right-4 z-[100] bg-white text-slate-800 px-4 py-3 rounded-full shadow-xl border border-slate-200 text-sm font-black backdrop-blur-sm flex items-center gap-2 animate-bounce">
                             <span>🔍</span> Buscar
                         </button>
+                    )}
+
+                    {esModoLectura && (
+                        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[120] bg-white/95 backdrop-blur-md border border-slate-200 shadow-xl rounded-2xl px-2 py-2 flex items-center gap-2">
+                            <button onClick={() => adjustZoom(0.9)} className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black">−</button>
+                            <button onClick={resetZoom} className="px-3 h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-wide">Centro</button>
+                            <button onClick={() => adjustZoom(1.1)} className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black">＋</button>
+                        </div>
                     )}
 
                     {/* --- CANVAS --- */}
