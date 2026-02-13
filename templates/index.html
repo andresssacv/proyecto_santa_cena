@@ -308,22 +308,26 @@
                 const scaledW = canvasW * k;
                 const scaledH = canvasH * k;
 
+                // Área realmente visible del canvas en coordenadas internas (clave para móvil)
+                const viewportW = Math.min(canvasW, window.innerWidth / Math.max(scale, 0.001));
+                const viewportH = Math.min(canvasH, window.innerHeight / Math.max(scale, 0.001));
+
                 let minX, maxX, minY, maxY;
-                if (scaledW <= canvasW) {
-                    const centeredX = (canvasW - scaledW) / 2;
+                if (scaledW <= viewportW) {
+                    const centeredX = (viewportW - scaledW) / 2;
                     minX = centeredX;
                     maxX = centeredX;
                 } else {
-                    minX = canvasW - scaledW;
+                    minX = viewportW - scaledW;
                     maxX = 0;
                 }
 
-                if (scaledH <= canvasH) {
-                    const centeredY = (canvasH - scaledH) / 2;
+                if (scaledH <= viewportH) {
+                    const centeredY = (viewportH - scaledH) / 2;
                     minY = centeredY;
                     maxY = centeredY;
                 } else {
-                    minY = canvasH - scaledH;
+                    minY = viewportH - scaledH;
                     maxY = 0;
                 }
 
@@ -333,7 +337,6 @@
                     k
                 };
             };
-
 
             // Función manual de zoom
             const performZoomToSector = (sector) => {
