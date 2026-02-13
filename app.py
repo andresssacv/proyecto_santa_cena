@@ -124,7 +124,7 @@ def enviar_asignacion():
             return jsonify({"status": "error", "message": "Faltan datos requeridos"}), 400
 
         # --- BUSCAR TELÉFONO EN SUPABASE ---
-        contacto = supabase.table("contactos").select("telefono").eq("nombre", nombre).execute()
+        contacto = supabase.table("contactos").select("telefono").ilike("nombre", nombre.strip()).execute()
 
         telefono_destino = None
 
