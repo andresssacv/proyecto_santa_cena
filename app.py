@@ -184,12 +184,12 @@ def enviar_asignacion():
 
         mensaje = (
             f"✅ *Registro Santa Cena 2026*\n\n"
-            f"Hola Hermano(a) *{nombre}*,\n"
+            f"Hola hermano(a) *{nombre}*,\n"
             f"Su lugar asignado es:\n"
             f"📍 *Sector {sector}*\n"
             f"🧭 *Mesa: {mesa_label}*\n"
             f"🪑 *Fila {fila}*\n\n"
-            f"🔎 Ver mapa interactivo (solo lectura):\n{link_visualizacion}"
+            f"🔎 Ver mapa interactivo:\n{link_visualizacion}"
         )
 
         url_wa = f"https://wa.me/{telefono_destino}?text={urllib.parse.quote(mensaje)}"
@@ -253,4 +253,5 @@ def admin_export():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
 
