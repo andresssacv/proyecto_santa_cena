@@ -312,32 +312,38 @@
                 const viewportW = Math.min(canvasW, window.innerWidth / Math.max(scale, 0.001));
                 const viewportH = Math.min(canvasH, window.innerHeight / Math.max(scale, 0.001));
 
+                const baseX = (canvasW - viewportW) / 2;
+                const baseY = (canvasH - viewportH) / 2;
+
                 let minX, maxX, minY, maxY;
                 if (scaledW <= viewportW) {
-                    const centeredX = (viewportW - scaledW) / 2;
+                    const centeredX = baseX + ((viewportW - scaledW) / 2);
                     minX = centeredX;
                     maxX = centeredX;
                 } else {
-                    minX = viewportW - scaledW;
-                    maxX = 0;
+                    minX = baseX + viewportW - scaledW;
+                    maxX = baseX;
                 }
 
                 if (scaledH <= viewportH) {
-                    const centeredY = (viewportH - scaledH) / 2;
+                    const centeredY = baseY + ((viewportH - scaledH) / 2);
                     minY = centeredY;
                     maxY = centeredY;
                 } else {
-                    minY = viewportH - scaledH;
-                    maxY = 0;
+                    minY = baseY + viewportH - scaledH;
+                    maxY = baseY;
                 }
 
+                const panSlackX = (canvasW - viewportW) / 2;
+                const panSlackY = (canvasH - viewportH) / 2;
+
                 return {
-                    x: Math.min(maxX, Math.max(minX, x)),
-                    y: Math.min(maxY, Math.max(minY, y)),
+                    x: Math.min(maxX + panSlackX, Math.max(minX - panSlackX, x)),
+                    y: Math.min(maxY + panSlackY, Math.max(minY - panSlackY, y)),
                     k
                 };
             };
-
+        
             // Función manual de zoom
             const performZoomToSector = (sector) => {
                 if (!sector) return;
