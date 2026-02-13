@@ -13,6 +13,7 @@ td, th { padding:8px; border-bottom:1px solid #ddd; }
 button { padding:6px 10px; border:none; border-radius:6px; cursor:pointer; }
 .delete { background:red; color:white; }
 .reset { background:orange; color:white; }
+.export { background:#2563eb; color:white; }
 </style>
 </head>
 
@@ -22,6 +23,7 @@ button { padding:6px 10px; border:none; border-radius:6px; cursor:pointer; }
   <h2>Panel Admin — Registros Santa Cena</h2>
 
   <button class="reset" onclick="resetAll()">Reset Total</button>
+  <button class="export" onclick="exportCSV()">Exportar CSV</button>
 
   <table>
     <thead>
@@ -76,6 +78,9 @@ async function resetAll() {
   cargar();
 }
 
+function exportCSV() {
+  window.open("/admin/export");
+}
 
 cargar();
 </script>
