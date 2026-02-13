@@ -25,7 +25,7 @@
             height: 100vh;
             overflow: hidden;
             position: relative;
-            touch-action: none; 
+            touch-action: auto; 
         }
 
         /* Contenedor del Canvas */
@@ -58,6 +58,7 @@
             transition: transform 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             transform-origin: 0 0;
             will-change: transform;
+            touch-action: none;
         }
 
         /* Texturas y Estilos Visuales */
@@ -362,23 +363,27 @@
                 if (document.activeElement && document.activeElement.tagName === 'INPUT') document.activeElement.blur();
                 setIsAnimating(false);
                 setIsDragging(true);
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                setDragStart({ x: clientX, y: clientY });
+                if (e.pointerId !== undefined && e.currentTarget?.setPointerCapture) {
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                }
+                setDragStart({ x: e.clientX, y: e.clientY });
             };
 
             const handlePointerMove = (e) => {
                 if (!isDragging) return;
                 e.preventDefault();
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                const dx = clientX - dragStart.x;
-                const dy = clientY - dragStart.y;
+                const dx = e.clientX - dragStart.x;
+                const dy = e.clientY - dragStart.y;
                 setViewTransform(prev => clampTransform(prev.x + (dx / scale), prev.y + (dy / scale), prev.k));
-                setDragStart({ x: clientX, y: clientY });
+                setDragStart({ x: e.clientX, y: e.clientY });
             };
 
-            const handlePointerUp = () => setIsDragging(false);
+            const handlePointerUp = (e) => {
+                if (e?.pointerId !== undefined && e.currentTarget?.releasePointerCapture) {
+                    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (_) {}
+                }
+                setIsDragging(false);
+            };
 
             const resetZoom = (e) => {
                 e && e.stopPropagation();
@@ -562,13 +567,11 @@
                     <div className="scale-container" style={{ transform: `scale(${scale})` }} ref={containerRef}>
                         <div 
                             className="capture-canvas"
-                            onMouseDown={handlePointerDown}
-                            onMouseMove={handlePointerMove}
-                            onMouseUp={handlePointerUp}
-                            onMouseLeave={handlePointerUp}
-                            onTouchStart={handlePointerDown}
-                            onTouchMove={handlePointerMove}
-                            onTouchEnd={handlePointerUp}
+                            onPointerDown={handlePointerDown}
+                            onPointerMove={handlePointerMove}
+                            onPointerUp={handlePointerUp}
+                            onPointerCancel={handlePointerUp}
+                            onPointerLeave={handlePointerUp}
                         >
                             {/* Header flotante */}
                             <div className="absolute top-6 left-8 z-[70] pointer-events-none opacity-80">
