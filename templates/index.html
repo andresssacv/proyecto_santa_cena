@@ -342,7 +342,7 @@
                 const canvasW = 1280;
                 const canvasH = 720;
                 const isMobile = window.innerWidth < 768;
-                const zoomLevel = esModoLectura ? (isMobile ? 1.18 : 1.1) : (isMobile ? 1.9 : (scale < 0.6 ? 2.1 : 1.65));
+                const zoomLevel = esModoLectura ? (isMobile ? 1.06 : 1.03) : (isMobile ? 1.55 : (scale < 0.6 ? 1.9 : 1.55));
                 const targetX = (sector.cx / 100) * canvasW;
                 const targetY = (sector.cy / 100) * canvasH;
                 const x = 640 - (targetX * zoomLevel);
@@ -389,7 +389,7 @@
             const resetZoom = (e) => {
                 e && e.stopPropagation();
                 setIsAnimating(true);
-                setViewTransform(clampTransform(0, 0, window.innerWidth < 768 ? 1.06 : 1));
+                setViewTransform(clampTransform(0, 0, 1));
                 // Se ha mantenido la lógica de NO borrar la selección aquí
             };
 
