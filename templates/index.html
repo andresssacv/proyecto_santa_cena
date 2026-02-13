@@ -185,7 +185,7 @@
            
             // Estados del Mapa
             const [scale, setScale] = useState(1);
-            const [viewTransform, setViewTransform] = useState({ x: 0, y: 0, k: 1 });
+            const [viewTransform, setViewTransform] = useState({ x: 0, y: 0, k: window.innerWidth < 768 ? 1.06 : 1 });
             const [isDragging, setIsDragging] = useState(false);
             const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
             const [isAnimating, setIsAnimating] = useState(true);
@@ -341,7 +341,7 @@
                 const canvasW = 1280;
                 const canvasH = 720;
                 const isMobile = window.innerWidth < 768;
-                const zoomLevel = esModoLectura ? (isMobile ? 1.45 : 1.25) : (isMobile ? 2.25 : (scale < 0.6 ? 2.3 : 1.75));
+                const zoomLevel = esModoLectura ? (isMobile ? 1.18 : 1.1) : (isMobile ? 1.9 : (scale < 0.6 ? 2.1 : 1.65));
                 const targetX = (sector.cx / 100) * canvasW;
                 const targetY = (sector.cy / 100) * canvasH;
                 const x = 640 - (targetX * zoomLevel);
@@ -371,7 +371,7 @@
 
             const handlePointerMove = (e) => {
                 if (!isDragging) return;
-                e.preventDefault();
+                if (e.cancelable) e.preventDefault();
                 const dx = e.clientX - dragStart.x;
                 const dy = e.clientY - dragStart.y;
                 setViewTransform(prev => clampTransform(prev.x + (dx / scale), prev.y + (dy / scale), prev.k));
@@ -388,7 +388,7 @@
             const resetZoom = (e) => {
                 e && e.stopPropagation();
                 setIsAnimating(true);
-                setViewTransform(clampTransform(0, 0, 1));
+                setViewTransform(clampTransform(0, 0, window.innerWidth < 768 ? 1.06 : 1));
                 // Se ha mantenido la lógica de NO borrar la selección aquí
             };
 
