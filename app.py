@@ -146,6 +146,21 @@ def enviar_asignacion():
                 "telefono": telefono_destino
             }).execute()
 
+        # --- VALIDAR NOMBRE REPETIDO ---
+        nombre_existente = (
+            supabase.table("registros_santa_cena")
+            .select("id, fila")
+            .ilike("nombre", nombre.strip())
+            .execute()
+        )
+
+        if nombre_existente.data:
+            fila_actual = nombre_existente.data[0].get("fila")
+            return jsonify({
+                "status": "error",
+                "message": f"Este hermano ya está registrado en la fila {fila_actual}"
+            }), 400
+
         # --- VALIDAR FILA REPETIDA ---
         fila_existente = supabase.table("registros_santa_cena") \
             .select("id") \
