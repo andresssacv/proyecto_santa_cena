@@ -14,6 +14,7 @@ CORS(app)
 # ======================
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+ADMIN_EMAILS = [e.strip().lower() for e in os.getenv("ADMIN_EMAILS", "").split(",") if e.strip()]
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     raise Exception("Supabase credentials missing")
@@ -22,6 +23,39 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 token_serializer = URLSafeSerializer(os.getenv("ASSIGNATION_LINK_SECRET", SUPABASE_KEY))
 
 
+# ======================
+# AUTH HELPERS
+# ======================
+def get_bearer_token():
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return None
+    return auth_header.split(" ", 1)[1].strip()
+
+
+def get_current_user():
+    token = get_bearer_token()
+    if not token:
+        return None, jsonify({"status": "error", "message": "No autorizado (token requerido)"}), 401
+
+    try:
+        user_resp = supabase.auth.get_user(token)
+        user = user_resp.user
+        if not user:
+            return None, jsonify({"status": "error", "message": "Token inválido"}), 401
+        return user, None, None
+    except Exception:
+        return None, jsonify({"status": "error", "message": "Token inválido"}), 401
+
+
+def require_admin(user):
+    email = (user.email or "").lower()
+    return email in ADMIN_EMAILS
+
+
+# ======================
+# UTILS
+# ======================
 def obtener_mesa_label(sector):
     """Retorna el nombre de mesa/mesón en base al sector."""
     try:
@@ -41,13 +75,14 @@ def obtener_mesa_label(sector):
         return "Mesón Entrada"
     return "No definida"
 
+
 # ======================
 # FRONTEND ROUTES
 # ======================
-
 @app.route('/')
 def index():
     return render_template('index.html')
+
 
 @app.route('/admin')
 def admin():
@@ -67,55 +102,18 @@ def ver_asignacion(token):
 
     return render_template('ver_asignacion.html', fila_asignada=fila)
 
-# ======================
-# CONTACTS FUNCTIONS
-# ======================
-
-def obtener_telefono(nombre):
-    nombre_normalizado = nombre.strip().lower()
-
-    res = supabase.table("contactos") \
-        .select("telefono") \
-        .filter("normalize_text(nombre)", "ilike", f"%{nombre_normalizado}%") \
-        .execute()
-
-    return res.data[0]["telefono"] if res.data else None
-
-
-def guardar_telefono(nombre, telefono):
-    supabase.table("contactos").insert({
-        "nombre": nombre.strip(),
-        "telefono": str(telefono).strip()
-    }).execute()
-
-
-# ======================
-# registro FUNCTIONS
-# ======================
-
-def fila_ocupada(fila):
-    res = supabase.table("registros_santa_cena") \
-        .select("id") \
-        .eq("fila", fila.strip()) \
-        .execute()
-
-    return bool(res.data)
-
-
-def guardar_registro(nombre, fila, sector):
-    supabase.table("registros_santa_cena").insert({
-        "nombre": nombre.strip(),
-        "fila": fila.strip(),
-        "sector": sector.strip()
-    }).execute()
 
 # ======================
 # MAIN REGISTER ENDPOINT
 # ======================
-
 @app.route('/enviar_asignacion', methods=['POST'])
 def enviar_asignacion():
     try:
+        # Requiere usuario registrador logueado
+        user, err, code = get_current_user()
+        if err:
+            return err, code
+
         data = request.get_json()
 
         nombre = data.get('nombre')
@@ -130,7 +128,6 @@ def enviar_asignacion():
         contacto = supabase.table("contactos").select("telefono").ilike("nombre", nombre.strip()).execute()
 
         telefono_destino = None
-
         if contacto.data and len(contacto.data) > 0:
             telefono_destino = contacto.data[0]["telefono"]
 
@@ -143,7 +140,6 @@ def enviar_asignacion():
                 })
 
             telefono_destino = str(telefono_enviado).strip()
-
             supabase.table("contactos").insert({
                 "nombre": nombre.strip(),
                 "telefono": telefono_destino
@@ -165,19 +161,23 @@ def enviar_asignacion():
             }), 400
 
         # --- VALIDAR FILA REPETIDA ---
-        fila_existente = supabase.table("registros_santa_cena") \
-            .select("id") \
-            .eq("fila", fila) \
+        fila_existente = (
+            supabase.table("registros_santa_cena")
+            .select("id")
+            .eq("fila", fila)
             .execute()
+        )
 
         if fila_existente.data:
             return jsonify({"status": "error", "message": "Fila ya ocupada"}), 400
 
-        # --- GUARDAR REGISTRO ---
+        # --- GUARDAR REGISTRO CON REGISTRADOR ---
         supabase.table("registros_santa_cena").insert({
             "nombre": nombre.strip(),
             "fila": fila,
-            "sector": sector
+            "sector": sector,
+            "registrador_id": user.id,
+            "registrador_email": user.email
         }).execute()
 
         # --- LINK WHATSAPP ---
@@ -190,7 +190,7 @@ def enviar_asignacion():
             f"Hola hermano(a) *{nombre}*,\n"
             f"Su lugar asignado es:\n"
             f"📍 *Sector {sector}*\n"
-            f"🧭 *Mesa: {mesa_label}*\n"
+            f"🧭 *{mesa_label}*\n"
             f"🪑 *Fila {fila}*\n\n"
             f"🔎 Ver mapa interactivo:\n{link_visualizacion}"
         )
@@ -204,11 +204,36 @@ def enviar_asignacion():
 
 
 # ======================
+# REGISTRADOR API
+# ======================
+@app.route('/mis_registros')
+def mis_registros():
+    user, err, code = get_current_user()
+    if err:
+        return err, code
+
+    res = (
+        supabase.table("registros_santa_cena")
+        .select("*")
+        .eq("registrador_id", user.id)
+        .order("created_at", desc=True)
+        .execute()
+    )
+
+    return jsonify(res.data)
+
+
+# ======================
 # ADMIN API
 # ======================
-
 @app.route('/admin/listar')
 def admin_listar():
+    user, err, code = get_current_user()
+    if err:
+        return err, code
+    if not require_admin(user):
+        return jsonify({"status": "error", "message": "Acceso solo administrador"}), 403
+
     res = supabase.table("registros_santa_cena") \
         .select("*") \
         .order("created_at", desc=True) \
@@ -219,6 +244,12 @@ def admin_listar():
 
 @app.route('/admin/borrar', methods=['POST'])
 def admin_borrar():
+    user, err, code = get_current_user()
+    if err:
+        return err, code
+    if not require_admin(user):
+        return jsonify({"status": "error", "message": "Acceso solo administrador"}), 403
+
     data = request.get_json()
 
     supabase.table("registros_santa_cena") \
@@ -231,6 +262,12 @@ def admin_borrar():
 
 @app.route('/admin/reset', methods=['POST'])
 def admin_reset():
+    user, err, code = get_current_user()
+    if err:
+        return err, code
+    if not require_admin(user):
+        return jsonify({"status": "error", "message": "Acceso solo administrador"}), 403
+
     supabase.table("registros_santa_cena") \
         .delete() \
         .neq("id", 0) \
@@ -241,6 +278,12 @@ def admin_reset():
 
 @app.route('/admin/export')
 def admin_export():
+    user, err, code = get_current_user()
+    if err:
+        return err, code
+    if not require_admin(user):
+        return jsonify({"status": "error", "message": "Acceso solo administrador"}), 403
+
     res = supabase.table("registros_santa_cena").select("*").execute()
 
     df = pd.DataFrame(res.data)
@@ -249,13 +292,10 @@ def admin_export():
 
     return send_file(path, as_attachment=True)
 
-# ======================
-# RUN FOR RENDER
-# ======================
 
+# ======================
+# RUN
+# ======================
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-
-
-
