@@ -14,12 +14,40 @@ CORS(app)
 # ======================
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+ADMIN_EMAILS = [e.strip().lower() for e in os.getenv("ADMIN_EMAILS", "").split(",") if e.strip()]
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     raise Exception("Supabase credentials missing")
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 token_serializer = URLSafeSerializer(os.getenv("ASSIGNATION_LINK_SECRET", SUPABASE_KEY))
+
+
+def get_bearer_token():
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return None
+    return auth_header.split(" ", 1)[1].strip()
+
+
+def get_current_user():
+    token = get_bearer_token()
+    if not token:
+        return None, jsonify({"status": "error", "message": "No autorizado (token requerido)"}), 401
+
+    try:
+        user_resp = supabase.auth.get_user(token)
+        user = user_resp.user
+        if not user:
+            return None, jsonify({"status": "error", "message": "Token inválido"}), 401
+        return user, None, None
+    except Exception:
+        return None, jsonify({"status": "error", "message": "Token inválido"}), 401
+
+
+def require_admin(user):
+    email = (user.email or "").lower()
+    return email in ADMIN_EMAILS
 
 
 def obtener_mesa_label(sector):
@@ -113,6 +141,10 @@ def guardar_registro(nombre, fila, sector):
 @app.route('/enviar_asignacion', methods=['POST'])
 def enviar_asignacion():
     try:
+        user, err, code = get_current_user()
+        if err:
+            return err, code
+
         data = request.get_json()
 
         nombre = data.get('nombre')
@@ -174,7 +206,9 @@ def enviar_asignacion():
         supabase.table("registros_santa_cena").insert({
             "nombre": nombre.strip(),
             "fila": fila,
-            "sector": sector
+            "sector": sector,
+            "registrador_id": user.id,
+            "registrador_email": user.email
         }).execute()
 
         # --- LINK WHATSAPP ---
@@ -204,8 +238,29 @@ def enviar_asignacion():
 # ADMIN API
 # ======================
 
+
+@app.route('/mis_registros')
+def mis_registros():
+    user, err, code = get_current_user()
+    if err:
+        return err, code
+
+    res = supabase.table("registros_santa_cena") \
+        .select("*") \
+        .eq("registrador_id", user.id) \
+        .order("created_at", desc=True) \
+        .execute()
+
+    return jsonify(res.data)
+
 @app.route('/admin/listar')
 def admin_listar():
+    user, err, code = get_current_user()
+    if err:
+        return err, code
+    if not require_admin(user):
+        return jsonify({"status": "error", "message": "Acceso solo administrador"}), 403
+
     res = supabase.table("registros_santa_cena") \
         .select("*") \
         .order("created_at", desc=True) \
@@ -216,6 +271,12 @@ def admin_listar():
 
 @app.route('/admin/borrar', methods=['POST'])
 def admin_borrar():
+    user, err, code = get_current_user()
+    if err:
+        return err, code
+    if not require_admin(user):
+        return jsonify({"status": "error", "message": "Acceso solo administrador"}), 403
+
     data = request.get_json()
 
     supabase.table("registros_santa_cena") \
@@ -228,6 +289,12 @@ def admin_borrar():
 
 @app.route('/admin/reset', methods=['POST'])
 def admin_reset():
+    user, err, code = get_current_user()
+    if err:
+        return err, code
+    if not require_admin(user):
+        return jsonify({"status": "error", "message": "Acceso solo administrador"}), 403
+
     supabase.table("registros_santa_cena") \
         .delete() \
         .neq("id", 0) \
@@ -238,6 +305,12 @@ def admin_reset():
 
 @app.route('/admin/export')
 def admin_export():
+    user, err, code = get_current_user()
+    if err:
+        return err, code
+    if not require_admin(user):
+        return jsonify({"status": "error", "message": "Acceso solo administrador"}), 403
+
     res = supabase.table("registros_santa_cena").select("*").execute()
 
     df = pd.DataFrame(res.data)
@@ -253,6 +326,5 @@ def admin_export():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-
 
 
