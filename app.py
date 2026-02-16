@@ -72,9 +72,11 @@ def ver_asignacion(token):
 # ======================
 
 def obtener_telefono(nombre):
+    nombre_normalizado = nombre.strip().lower()
+
     res = supabase.table("contactos") \
         .select("telefono") \
-        .eq("nombre", nombre.strip()) \
+        .filter("normalize_text(nombre)", "ilike", f"%{nombre_normalizado}%") \
         .execute()
 
     return res.data[0]["telefono"] if res.data else None
@@ -85,6 +87,7 @@ def guardar_telefono(nombre, telefono):
         "nombre": nombre.strip(),
         "telefono": str(telefono).strip()
     }).execute()
+
 
 # ======================
 # registro FUNCTIONS
@@ -253,5 +256,6 @@ def admin_export():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
 
 
