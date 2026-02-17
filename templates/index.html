@@ -225,7 +225,19 @@
                         },
                         body: JSON.stringify(payload)
                     });
-                    const data = await response.json();
+                    
+                    let data = null;
+                    const contentType = response.headers.get('content-type') || '';
+                    if (contentType.includes('application/json')) {
+                        data = await response.json();
+                    } else {
+                        const raw = await response.text();
+                        throw new Error(raw || `Respuesta inesperada del servidor (HTTP ${response.status})`);
+                    }
+
+                    if (!response.ok && (!data || !data.message)) {
+                        throw new Error(`Error del servidor (HTTP ${response.status})`);
+                    }
             
                     if (data.status === 'choose_phone') {
                         const opciones = Array.isArray(data.options) ? data.options : [];
@@ -265,7 +277,7 @@
                         alert(data.message);
                     }
                 } catch (e) {
-                    alert("Error de conexión");
+                    alert(e?.essage || "Error de conexión");
                 }
             };
             
