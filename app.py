@@ -187,15 +187,37 @@ def enviar_asignacion():
         if not nombre or not fila or not sector:
             return jsonify({"status": "error", "message": "Faltan datos requeridos"}), 400
 
-        # --- BUSCAR TELÉFONO EN SUPABASE ---
-        contacto = supabase.table("contactos").select("telefono").ilike("nombre", nombre.strip()).execute()
+        # --- BUSCAR TELÉFONO(S) EN SUPABASE ---
+        contacto = supabase.table("contactos").select("id, telefono").ilike("nombre", nombre.strip()).execute()
 
+        candidatos = contacto.data or []
         telefono_destino = None
+        telefono_enviado = str(telefono_enviado).strip() if telefono_enviado else ""
 
-        if contacto.data and len(contacto.data) > 0:
-            telefono_destino = contacto.data[0]["telefono"]
+        # Caso 1: hay varios con el mismo nombre -> pedir selección por teléfono
+        if len(candidatos) > 1:
+            telefonos_candidatos = [str(c.get("telefono", "")).strip() for c in candidatos if c.get("telefono")]
 
-        # --- SI NO EXISTE, PEDIR TELÉFONO ---
+            if not telefono_enviado:
+                return jsonify({
+                    "status": "choose_phone",
+                    "message": "Se encontraron varias personas con ese nombre. Seleccione el teléfono correcto.",
+                    "options": telefonos_candidatos
+                })
+
+            if telefono_enviado not in telefonos_candidatos:
+                return jsonify({
+                    "status": "error",
+                    "message": "El teléfono seleccionado no coincide con las opciones encontradas para ese nombre."
+                }), 400
+
+            telefono_destino = telefono_enviado
+
+        # Caso 2: existe uno solo
+        elif len(candidatos) == 1:
+            telefono_destino = str(candidatos[0].get("telefono", "")).strip()
+
+        # Caso 3: no existe en contactos -> pedir teléfono para crearlo
         if not telefono_destino:
             if not telefono_enviado:
                 return jsonify({
@@ -203,7 +225,7 @@ def enviar_asignacion():
                     "message": "Hermano no encontrado. Ingrese teléfono."
                 })
 
-            telefono_destino = str(telefono_enviado).strip()
+            telefono_destino = telefono_enviado
 
             supabase.table("contactos").insert({
                 "nombre": nombre.strip(),
@@ -250,10 +272,10 @@ def enviar_asignacion():
 
         mensaje = (
             f"✅ *Registro Santa Cena 2026*\n\n"
-            f"Hola hermano(a) *{nombre}*,\n"
+            f"Hola Hermano(a) *{nombre}*,\n"
             f"Su lugar asignado es:\n"
             f"📍 *Sector {sector}*\n"
-            f"🧭 *{mesa_label}*\n"
+            f"🧭 *Mesa: {mesa_label}*\n"
             f"🪑 *Fila {fila}*\n\n"
             f"🔎 Ver mapa interactivo (solo lectura):\n{link_visualizacion}"
         )
