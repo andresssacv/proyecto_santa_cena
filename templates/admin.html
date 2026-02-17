@@ -38,8 +38,20 @@ button { padding:6px 10px; border:none; border-radius:6px; cursor:pointer; }
 </div>
 
 <script>
+
+function getAuthHeaders() {
+  const accessToken = localStorage.getItem('accessToken');
+  if (!accessToken) {
+    throw new Error('Debes iniciar sesión como administrador.');
+  }
+  return {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${accessToken}`
+  };
+}
+  
 async function cargar() {
-  const res = await fetch("/admin/listar");
+  const res = await fetch("/admin/listar", { headers: getAuthHeaders() }  );
   const data = await res.json();
   const tabla = document.getElementById("tabla");
   tabla.innerHTML = "";
@@ -62,21 +74,21 @@ async function borrar(id) {
 
   await fetch("/admin/borrar", {
     method:"POST",
-    headers:{"Content-Type":"application/json"},
+    headers:getAuthHeaders(),
     body:JSON.stringify({id})
   });
 
-  cargar();
+  cargar().catch((e) => alert(e.message));
 }
 
 async function resetAll() {
   if (!confirm("RESET TOTAL?")) return;
 
-  await fetch("/admin/reset", { method:"POST" });
-  cargar();
+  await fetch("/admin/reset", { method:"POST", headers: getAuthHeaders() });
+  cargar().catch((e) => alert(e.message));
 }
 
-cargar();
+cargar().catch((e) => alert(e.message));
 </script>
 
 </body>
