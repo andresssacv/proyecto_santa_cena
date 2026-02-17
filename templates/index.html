@@ -467,6 +467,12 @@
                                 <a href="/admin" target="_blank" rel="noopener noreferrer" className="bg-indigo-600 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 whitespace-nowrap">
                                     Admin
                                 </a>
+                                <button
+                                    onClick={() => { localStorage.removeItem('accessToken'); localStorage.removeItem('refreshToken'); window.location.href = '/login'; }}
+                                    className="bg-slate-700 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-slate-800 whitespace-nowrap"
+                                >
+                                    Cerrar sesión
+                                </button>
                                 <button onClick={() => setShowControls(false)} className="bg-slate-800 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-slate-900 whitespace-nowrap">
                                     Ocultar
                                 </button>
