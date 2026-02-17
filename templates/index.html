@@ -201,18 +201,19 @@
             }, []);
 
             // Busca donde definiste los estados y pega esto:
-           const enviarAlBackend = async () => {
-               const accessToken = localStorage.getItem('accessToken');
+           const enviarAlBackend = async (telefonoSeleccionado = null) => {
+                const accessToken = localStorage.getItem('accessToken');
                 if (!accessToken) {
                     alert('Debes iniciar sesión para registrar asignaciones.');
                     return;
                 }
-               
+
+                const telefonoParaEnviar = telefonoSeleccionado || telefono;
                 const payload = { 
                     nombre: nombreHermano, 
                     fila: trayNumber, 
                     sector: selectedId,
-                    telefono: telefono
+                    telefono: telefonoParaEnviar
                 };
             
                 try {
@@ -226,7 +227,31 @@
                     });
                     const data = await response.json();
             
-                    if (data.status === 'need_phone') {
+                    if (data.status === 'choose_phone') {
+                        const opciones = Array.isArray(data.options) ? data.options : [];
+                        if (!opciones.length) {
+                            alert('Hay duplicados por nombre, pero no se encontraron teléfonos válidos para seleccionar.');
+                            return;
+                        }
+
+                        const listado = opciones.map((tel, idx) => `${idx + 1}. ${tel}`).join('\n');
+                        const eleccion = window.prompt(
+                            `Se encontraron varias personas con ese nombre.\nSelecciona una opción escribiendo el número:\n\n${listado}`,
+                            '1'
+                        );
+
+                        if (eleccion === null) return;
+
+                        const indice = parseInt(eleccion, 10) - 1;
+                        if (Number.isNaN(indice) || indice < 0 || indice >= opciones.length) {
+                            alert('Opción inválida. Intente nuevamente.');
+                            return;
+                        }
+
+                        const telefonoElegido = opciones[indice];
+                        setTelefono(telefonoElegido);
+                        await enviarAlBackend(telefonoElegido);
+                    } else if (data.status === 'need_phone') {
                         setMostrandoCampoTelefono(true);
                         alert("Este hermano no está en la base de datos. Por favor, ingresa su teléfono para guardarlo.");
                     } else if (data.status === 'success') {
