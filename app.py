@@ -82,6 +82,11 @@ def admin():
     return render_template('admin.html')
 
 
+@app.route('/login')
+def login():
+    return render_template('login.html')
+
+
 @app.route('/ver_asignacion/<token>')
 def ver_asignacion(token):
     try:
@@ -133,6 +138,33 @@ def guardar_registro(nombre, fila, sector):
         "fila": fila.strip(),
         "sector": sector.strip()
     }).execute()
+
+
+
+@app.route('/auth/login', methods=['POST'])
+def auth_login():
+    data = request.get_json() or {}
+    email = (data.get('email') or '').strip()
+    password = data.get('password') or ''
+
+    if not email or not password:
+        return jsonify({"status": "error", "message": "Email y contraseña son obligatorios"}), 400
+
+    try:
+        auth_resp = supabase.auth.sign_in_with_password({"email": email, "password": password})
+        session = auth_resp.session
+        user = auth_resp.user
+        if not session or not user:
+            return jsonify({"status": "error", "message": "Credenciales inválidas"}), 401
+
+        return jsonify({
+            "status": "success",
+            "access_token": session.access_token,
+            "refresh_token": session.refresh_token,
+            "user": {"id": user.id, "email": user.email}
+        })
+    except Exception:
+        return jsonify({"status": "error", "message": "Credenciales inválidas"}), 401
 
 # ======================
 # MAIN REGISTER ENDPOINT
@@ -218,10 +250,10 @@ def enviar_asignacion():
 
         mensaje = (
             f"✅ *Registro Santa Cena 2026*\n\n"
-            f"Hola Hermano(a) *{nombre}*,\n"
+            f"Hola hermano(a) *{nombre}*,\n"
             f"Su lugar asignado es:\n"
             f"📍 *Sector {sector}*\n"
-            f"🧭 *Mesa: {mesa_label}*\n"
+            f"🧭 *{mesa_label}*\n"
             f"🪑 *Fila {fila}*\n\n"
             f"🔎 Ver mapa interactivo (solo lectura):\n{link_visualizacion}"
         )
