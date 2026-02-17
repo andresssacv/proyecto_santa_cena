@@ -202,17 +202,26 @@
 
             // Busca donde definiste los estados y pega esto:
            const enviarAlBackend = async () => {
+               const accessToken = localStorage.getItem('accessToken');
+                if (!accessToken) {
+                    alert('Debes iniciar sesión para registrar asignaciones.');
+                    return;
+                }
+               
                 const payload = { 
                     nombre: nombreHermano, 
                     fila: trayNumber, 
                     sector: selectedId,
-                    telefono: telefono // Se envía vacío si ya existe en el JSON
+                    telefono: telefono
                 };
             
                 try {
                     const response = await fetch('/enviar_asignacion', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${accessToken}`
+                        },
                         body: JSON.stringify(payload)
                     });
                     const data = await response.json();
