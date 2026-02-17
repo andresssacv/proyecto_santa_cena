@@ -188,7 +188,7 @@ def enviar_asignacion():
             return jsonify({"status": "error", "message": "Faltan datos requeridos"}), 400
 
         # --- BUSCAR TELÉFONO(S) EN SUPABASE ---
-        contacto = supabase.table("contactos").select("id, telefono").ilike("nombre", nombre.strip()).execute()
+        contacto = supabase.table("contactos").select("telefono").ilike("nombre", nombre.strip()).execute()
 
         candidatos = contacto.data or []
         telefono_destino = None
@@ -196,7 +196,7 @@ def enviar_asignacion():
 
         # Caso 1: hay varios con el mismo nombre -> pedir selección por teléfono
         if len(candidatos) > 1:
-            telefonos_candidatos = [str(c.get("telefono", "")).strip() for c in candidatos if c.get("telefono")]
+            telefonos_candidatos = sorted(set(str(c.get("telefono", "")).strip() for c in candidatos if c.get("telefono")))
 
             if not telefono_enviado:
                 return jsonify({
