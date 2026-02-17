@@ -235,6 +235,14 @@
                         throw new Error(raw || `Respuesta inesperada del servidor (HTTP ${response.status})`);
                     }
 
+                    if (response.status === 401) {
+                        localStorage.removeItem('accessToken');
+                        localStorage.removeItem('refreshToken');
+                        alert(data?.message || 'Sesión vencida. Inicia sesión nuevamente.');
+                        window.location.href = '/login';
+                        return;
+                    }
+
                     if (!response.ok && (!data || !data.message)) {
                         throw new Error(`Error del servidor (HTTP ${response.status})`);
                     }
