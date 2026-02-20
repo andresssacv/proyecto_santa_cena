@@ -177,7 +177,7 @@ def enviar_asignacion():
         if err:
             return err, code
 
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
 
         nombre = data.get('nombre')
         fila = str(data.get('fila'))
@@ -285,7 +285,8 @@ def enviar_asignacion():
         return jsonify({"status": "success", "url_whatsapp": url_wa})
 
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        app.logger.exception('Error en /enviar_asignacion')
+        return jsonify({"status": "error", "message": str(e) or 'Error interno al registrar'}), 500
 
 
 # ======================
