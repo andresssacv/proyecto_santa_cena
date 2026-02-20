@@ -308,6 +308,21 @@ def mis_registros():
 
     return jsonify(res.data)
 
+
+
+@app.route('/registros/listar')
+def registros_listar():
+    user, err, code = get_current_user()
+    if err:
+        return err, code
+
+    is_admin = require_admin(user)
+    query = supabase.table("registros_santa_cena").select("*").order("created_at", desc=True)
+    if not is_admin:
+        query = query.eq("registrador_id", user.id)
+
+    res = query.execute()
+    return jsonify({"rows": res.data or [], "is_admin": is_admin})
 @app.route('/admin/listar')
 def admin_listar():
     user, err, code = get_current_user()
