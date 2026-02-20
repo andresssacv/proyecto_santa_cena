@@ -200,8 +200,30 @@
                 }
             }, []);
 
-            // Busca donde definiste los estados y pega esto:
-           const enviarAlBackend = async (telefonoSeleccionado = null) => {
+            const fetchConReintento = async (url, options, intentos = 2) => {
+                let ultimoError = null;
+                for (let i = 0; i <= intentos; i++) {
+                    try {
+                        return await fetch(url, options);
+                    } catch (err) {
+                        ultimoError = err;
+                        if (i < intentos) {
+                            await new Promise(r => setTimeout(r, 700 * (i + 1)));
+                            continue;
+                        }
+                    }
+                }
+                throw ultimoError || new Error('No se pudo conectar con el servidor');
+            };
+
+            const enviarAlBackend = async (telefonoSeleccionado = null) => {
+                const accessToken = localStorage.getItem('accessToken');
+                if (!accessToken) {
+                    alert('Debes iniciar sesión para registrar asignaciones.');
+                    return;
+                }
+
+                const telefonoParaEnviar = telefonoSeleccionado || telefono;
                 const accessToken = localStorage.getItem('accessToken');
                 if (!accessToken) {
                     alert('Debes iniciar sesión para registrar asignaciones.');
@@ -217,7 +239,7 @@
                 };
             
                 try {
-                    const response = await fetch('/enviar_asignacion', {
+                    const response = await fetchConReintento('/enviar_asignacion', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -292,8 +314,10 @@
                     }
                 } catch (e) {
                     const msg = String(e?.message || '').toLowerCase();
-                    const esErrorRed = msg.includes('failed to fetch') || msg.includes('networkerror');
-                    alert(esErrorRed ? 'No se pudo conectar con el servidor. Revisa internet o vuelve a intentar.' : (e?.message || 'Error de conexión'));
+                    const esErrorRed = msg.includes('failed to fetch') || msg.includes('networkerror') || msg.includes('load failed') || msg.includes('network request failed');
+                    alert(esErrorRed
+                        ? 'No se pudo conectar con el servidor en este momento (posible reinicio de Render o red inestable). Espera unos segundos e intenta nuevamente.'
+                        : (e?.message || 'Error de conexión'));
                 }
             };
             
