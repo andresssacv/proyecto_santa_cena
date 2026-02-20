@@ -1,22 +1,23 @@
- <!DOCTYPE html>
- <html lang="es">
- <head>
- <meta charset="UTF-8">
- <title>Admin Santa Cena</title>
- <meta name="viewport" content="width=device-width, initial-scale=1">
- 
- <style>
- body { font-family: Arial; background:#f4f6f8; padding:20px; }
- .container { max-width:1000px; margin:auto; background:white; padding:20px; border-radius:12px; }
- table { width:100%; border-collapse:collapse; margin-top:15px; }
- td, th { padding:8px; border-bottom:1px solid #ddd; }
- button { padding:6px 10px; border:none; border-radius:6px; cursor:pointer; }
- .delete { background:red; color:white; }
- .reset { background:orange; color:white; }
- </style>
- </head>
- 
- <body>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Registros Santa Cena</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body { font-family: Arial; background:#f4f6f8; padding:20px; }
+.container { max-width:1000px; margin:auto; background:white; padding:20px; border-radius:12px; }
+table { width:100%; border-collapse:collapse; margin-top:15px; }
+td, th { padding:8px; border-bottom:1px solid #ddd; }
+button { padding:6px 10px; border:none; border-radius:6px; cursor:pointer; }
+.delete { background:red; color:white; }
+.reset { background:orange; color:white; }
+.hidden { display:none; }
+</style>
+</head>
+
+<body>
 <script>
 const token = localStorage.getItem('accessToken');
 if (!token) {
@@ -25,9 +26,9 @@ if (!token) {
 </script>
  
  <div class="container">
-   <h2>Panel Admin — Registros Santa Cena</h2>
+   <h2 id="titulo">Mis registros — Santa Cena</h2>
  
-   <button class="reset" onclick="resetAll()">Reset Total</button>
+   <button id="btnReset" class="reset hidden" onclick="resetAll()">Reset Total</button>
  
    <table>
      <thead>
@@ -43,12 +44,13 @@ if (!token) {
    </table>
  </div>
  
- <script>
+<script>
+let isAdmin = false;
 
 function getAuthHeaders() {
   const accessToken = localStorage.getItem('accessToken');
   if (!accessToken) {
-    throw new Error('Debes iniciar sesión como administrador.');
+    throw new Error('Debes iniciar sesión.');
   }
   return {
     "Content-Type": "application/json",
@@ -56,9 +58,18 @@ function getAuthHeaders() {
   };
 }
 
+async function parseResponse(res) {
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    return await res.json();
+  }
+  return { message: (await res.text()) || `HTTP ${res.status}` };
+}
+
+
  async function cargar() {
-   const res = await fetch("/admin/listar", { headers: getAuthHeaders() });
-   const contentType = res.headers.get('content-type') || '';
+   const res = await fetch('/registros/listar', { headers: getAuthHeaders() });
+   const data = await parseResponse(res);
    let data = null;
    let rawText = '';
  
@@ -88,46 +99,50 @@ function getAuthHeaders() {
    data.forEach(r => {
      const tr = document.createElement("tr");
      tr.innerHTML = `
-       <td>${r.nombre}</td>
-       <td>${r.fila}</td>
-       <td>${r.sector}</td>
-       <td>${new Date(r.created_at).toLocaleString()}</td>
-       <td><button class="delete" onclick="borrar(${r.id})">Borrar</button></td>
+       <td>${r.nombre ?? ''}</td>
+       <td>${r.fila ?? ''}</td>
+       <td>${r.sector ?? ''}</td>
+       <td>${r.created_at ? new Date(r.created_at).toLocaleString() : ''}</td>
+       <td>${botonBorrar}</td>
      `;
      tabla.appendChild(tr);
    });
  }
  
  async function borrar(id) {
-   if (!confirm("Eliminar registro?")) return;
+   if (!confirm('Eliminar registro?')) return;
  
-  const res = await fetch("/admin/borrar", {
-     method:"POST",
-    headers:getAuthHeaders(),
-     body:JSON.stringify({id})
-   });
- 
-  const data = await res.json();
-  if (!res.ok) {
+   const res = await fetch('/admin/borrar', {
+     method: 'POST',
+     headers: getAuthHeaders(),
+     body: JSON.stringify({ id })
+    });
+  
+    const data = await parseResponse(res);
+    if (!res.ok) {
     throw new Error(data?.message || `No se pudo borrar (HTTP ${res.status})`);
-  }
+    }
 
-  cargar().catch((e) => alert(e.message));
- }
+    await cargar();
+  }
  
  async function resetAll() {
-   if (!confirm("RESET TOTAL?")) return;
+   if (!isAdmin) {
+    alert('Solo administrador puede hacer reset total.');
+    return;
+   }
+   if (!confirm('RESET TOTAL?')) return;
  
-  const res = await fetch("/admin/reset", { method:"POST", headers: getAuthHeaders() });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data?.message || `No se pudo resetear (HTTP ${res.status})`);
-  }
+   const res = await fetch("/admin/reset", { method:"POST", headers: getAuthHeaders() });
+   const data = await res.json();
+   if (!res.ok) {
+     throw new Error(data?.message || `No se pudo resetear (HTTP ${res.status})`);
+   }
  
-  cargar().catch((e) => alert(e.message));
+   await cargar()
  }
  
-cargar().catch((e) => alert(e.message));
+ cargar().catch((e) => alert(e.message));
  </script>
  
  </body>
