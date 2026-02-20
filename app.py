@@ -12,15 +12,34 @@ CORS(app)
 # ======================
 # ENVIRONMENT VARIABLES
 # ======================
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_URL = (os.getenv("SUPABASE_URL") or "").strip()
+SUPABASE_KEY = (os.getenv("SUPABASE_KEY") or "").strip()
 ADMIN_EMAILS = [e.strip().lower() for e in os.getenv("ADMIN_EMAILS", "").split(",") if e.strip()]
 
-if not SUPABASE_URL or not SUPABASE_KEY:
-    raise Exception("Supabase credentials missing")
+missing_vars = [name for name, value in {
+    "SUPABASE_URL": SUPABASE_URL,
+    "SUPABASE_KEY": SUPABASE_KEY,
+}.items() if not value]
 
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-token_serializer = URLSafeSerializer(os.getenv("ASSIGNATION_LINK_SECRET", SUPABASE_KEY))
+SUPABASE_ENABLED = not missing_vars
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_ENABLED else None
+
+token_secret = os.getenv("ASSIGNATION_LINK_SECRET") or (SUPABASE_KEY if SUPABASE_KEY else "dev-secret")
+token_serializer = URLSafeSerializer(token_secret)
+
+
+def get_config_error_message():
+    return (
+        "Configuración incompleta: faltan variables de entorno requeridas "
+        + ", ".join(missing_vars)
+        + "."
+    )
+
+
+def require_supabase():
+    if SUPABASE_ENABLED:
+        return None
+    return jsonify({"status": "error", "message": get_config_error_message()}), 503
 
 
 def get_bearer_token():
@@ -31,6 +50,10 @@ def get_bearer_token():
 
 
 def get_current_user():
+    supabase_error = require_supabase()
+    if supabase_error:
+        return None, supabase_error[0], supabase_error[1]
+
     token = get_bearer_token()
     if not token:
         return None, jsonify({"status": "error", "message": "No autorizado (token requerido)"}), 401
@@ -85,6 +108,15 @@ def admin():
 @app.route('/login')
 def login():
     return render_template('login.html')
+
+
+@app.route('/health')
+def health():
+    return jsonify({
+        "status": "ok" if SUPABASE_ENABLED else "degraded",
+        "supabase_configured": SUPABASE_ENABLED,
+        "missing_vars": missing_vars,
+    }), 200
 
 
 @app.route('/ver_asignacion/<token>')
@@ -143,6 +175,10 @@ def guardar_registro(nombre, fila, sector):
 
 @app.route('/auth/login', methods=['POST'])
 def auth_login():
+    supabase_error = require_supabase()
+    if supabase_error:
+        return supabase_error
+
     data = request.get_json() or {}
     email = (data.get('email') or '').strip()
     password = data.get('password') or ''
@@ -172,6 +208,10 @@ def auth_login():
 
 @app.route('/enviar_asignacion', methods=['POST'])
 def enviar_asignacion():
+    supabase_error = require_supabase()
+    if supabase_error:
+        return supabase_error
+
     try:
         user, err, code = get_current_user()
         if err:
@@ -296,6 +336,10 @@ def enviar_asignacion():
 
 @app.route('/mis_registros')
 def mis_registros():
+    supabase_error = require_supabase()
+    if supabase_error:
+        return supabase_error
+
     user, err, code = get_current_user()
     if err:
         return err, code
@@ -312,6 +356,10 @@ def mis_registros():
 
 @app.route('/registros/listar')
 def registros_listar():
+    supabase_error = require_supabase()
+    if supabase_error:
+        return supabase_error
+
     user, err, code = get_current_user()
     if err:
         return err, code
@@ -325,6 +373,10 @@ def registros_listar():
     return jsonify({"rows": res.data or [], "is_admin": is_admin})
 @app.route('/admin/listar')
 def admin_listar():
+    supabase_error = require_supabase()
+    if supabase_error:
+        return supabase_error
+
     user, err, code = get_current_user()
     if err:
         return err, code
@@ -341,6 +393,10 @@ def admin_listar():
 
 @app.route('/admin/borrar', methods=['POST'])
 def admin_borrar():
+    supabase_error = require_supabase()
+    if supabase_error:
+        return supabase_error
+
     user, err, code = get_current_user()
     if err:
         return err, code
@@ -359,6 +415,10 @@ def admin_borrar():
 
 @app.route('/admin/reset', methods=['POST'])
 def admin_reset():
+    supabase_error = require_supabase()
+    if supabase_error:
+        return supabase_error
+
     user, err, code = get_current_user()
     if err:
         return err, code
@@ -375,6 +435,10 @@ def admin_reset():
 
 @app.route('/admin/export')
 def admin_export():
+    supabase_error = require_supabase()
+    if supabase_error:
+        return supabase_error
+
     user, err, code = get_current_user()
     if err:
         return err, code
