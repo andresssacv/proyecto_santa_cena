@@ -57,22 +57,30 @@ function getAuthHeaders() {
 }
 
  async function cargar() {
-  const res = await fetch("/admin/listar", { headers: getAuthHeaders() });
-   const data = await res.json();
-
-  if (!res.ok) {
-    if (res.status === 401) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      window.location.href = '/login';
-      return;
-    }
-    throw new Error(data?.message || `Error al cargar admin (HTTP ${res.status})`);
-  }
-
-  if (!Array.isArray(data)) {
-    throw new Error(data?.message || 'Respuesta inválida al listar registros.');
-  }
+   const res = await fetch("/admin/listar", { headers: getAuthHeaders() });
+   const contentType = res.headers.get('content-type') || '';
+   let data = null;
+   let rawText = '';
+ 
+   if (contentType.includes('application/json')) {
+     data = await res.json();
+   } else {
+     rawText = await res.text();
+   }
+ 
+   if (!res.ok) {
+     if (res.status === 401) {
+       localStorage.removeItem('accessToken');
+       localStorage.removeItem('refreshToken');
+       window.location.href = '/login';
+       return;
+     }
+     throw new Error((data && data.message) || rawText || `Error al cargar admin (HTTP ${res.status})`);
+   }
+ 
+   if (!Array.isArray(data)) {
+     throw new Error((data && data.message) || 'Respuesta inválida al listar registros.');
+   }
 
    const tabla = document.getElementById("tabla");
    tabla.innerHTML = "";
