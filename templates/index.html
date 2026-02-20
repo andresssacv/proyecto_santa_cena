@@ -226,25 +226,31 @@
                         body: JSON.stringify(payload)
                     });
                     
-                    let data = null;
                     const contentType = response.headers.get('content-type') || '';
+                    let data = null;
+                    let rawText = '';
+
                     if (contentType.includes('application/json')) {
                         data = await response.json();
                     } else {
-                        const raw = await response.text();
-                        throw new Error(raw || `Respuesta inesperada del servidor (HTTP ${response.status})`);
+                        rawText = await response.text();
                     }
 
                     if (response.status === 401) {
                         localStorage.removeItem('accessToken');
                         localStorage.removeItem('refreshToken');
-                        alert(data?.message || 'Sesión vencida. Inicia sesión nuevamente.');
+                        alert((data && data.message) || 'Sesión vencida o no autorizada. Inicia sesión nuevamente.');
                         window.location.href = '/login';
                         return;
                     }
 
-                    if (!response.ok && (!data || !data.message)) {
-                        throw new Error(`Error del servidor (HTTP ${response.status})`);
+                    if (!response.ok) {
+                        const backendMessage = (data && data.message) || rawText || `Error del servidor (HTTP ${response.status})`;
+                        throw new Error(backendMessage);
+                    }
+
+                    if (!data) {
+                        throw new Error('Respuesta inválida del servidor.');
                     }
             
                     if (data.status === 'choose_phone') {
@@ -285,7 +291,8 @@
                         alert(data.message);
                     }
                 } catch (e) {
-                    alert(e?.essage || "Error de conexión");
+                    const esErrorRed = e && (e.name === 'TypeError' || String(e.message || '').toLowerCase().includes('failed to fetch'));
+                    alert(esErrorRed ? 'No se pudo conectar con el servidor. Revisa internet o vuelve a iniciar sesión.' : (e?.message || 'Error de conexión'));
                 }
             };
             
