@@ -6,10 +6,16 @@
     <title>Master Layout - Santa Cena 2026</title>
     
     <!-- Librerías -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script>
+        window.__libLoadErrors = [];
+        window.__onLibLoadError = function (libName) {
+            window.__libLoadErrors.push(libName);
+        };
+    </script>
+    <script src="https://cdn.tailwindcss.com" onerror="window.__onLibLoadError('tailwind')"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" onerror="window.__onLibLoadError('react')"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" onerror="window.__onLibLoadError('react-dom')"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js" onerror="window.__onLibLoadError('babel')"></script>
     
     <!-- Fuente -->
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
@@ -89,6 +95,25 @@
 </head>
 <body>
     <div id="root"></div>
+
+    <script>
+        window.addEventListener('load', function () {
+            const root = document.getElementById('root');
+            const libsOk = !!(window.React && window.ReactDOM && window.Babel);
+
+            if (!libsOk || (window.__libLoadErrors && window.__libLoadErrors.length > 0)) {
+                const failed = (window.__libLoadErrors || []).join(', ') || 'react/react-dom/babel';
+                root.innerHTML = `
+                    <div style="max-width:760px;margin:40px auto;padding:20px;border-radius:12px;background:#fff;border:1px solid #e2e8f0;font-family:Arial,sans-serif;line-height:1.5;">
+                        <h2 style="margin-top:0;color:#b91c1c;">No se pudo cargar la interfaz</h2>
+                        <p>Fallo al cargar librerías del frontend (${failed}).</p>
+                        <p>En Render suele deberse a bloqueo temporal de CDN o política de red. Recarga la página y verifica conectividad saliente.</p>
+                        <p>Mientras tanto puedes usar <a href="/login">/login</a> y <a href="/admin">/admin</a>.</p>
+                    </div>
+                `;
+            }
+        });
+    </script>
 
     <script type="text/babel">
         {% raw %} 
@@ -202,13 +227,6 @@
 
         
             const enviarAlBackend = async (telefonoSeleccionado = null) => {
-                const accessToken = localStorage.getItem('accessToken');
-                if (!accessToken) {
-                    alert('Debes iniciar sesión para registrar asignaciones.');
-                    return;
-                }
-
-                const telefonoParaEnviar = telefonoSeleccionado || telefono;
                 const accessToken = localStorage.getItem('accessToken');
                 if (!accessToken) {
                     alert('Debes iniciar sesión para registrar asignaciones.');
