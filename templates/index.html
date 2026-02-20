@@ -291,8 +291,9 @@
                         alert(data.message);
                     }
                 } catch (e) {
-                    const esErrorRed = e && (e.name === 'TypeError' || String(e.message || '').toLowerCase().includes('failed to fetch'));
-                    alert(esErrorRed ? 'No se pudo conectar con el servidor. Revisa internet o vuelve a iniciar sesión.' : (e?.message || 'Error de conexión'));
+                    const msg = String(e?.message || '').toLowerCase();
+                    const esErrorRed = msg.includes('failed to fetch') || msg.includes('networkerror');
+                    alert(esErrorRed ? 'No se pudo conectar con el servidor. Revisa internet o vuelve a intentar.' : (e?.message || 'Error de conexión'));
                 }
             };
             
