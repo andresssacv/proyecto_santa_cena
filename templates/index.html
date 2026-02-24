@@ -94,6 +94,17 @@
     </style>
 </head>
 <body>
+        <script>
+        (function enforceLogin() {
+            const params = new URLSearchParams(window.location.search);
+            const esModoLectura = params.get('readOnly') === 'true';
+            const accessToken = localStorage.getItem('accessToken');
+            if (!esModoLectura && !accessToken) {
+                window.location.replace('/login');
+            }
+        })();
+    </script>
+
     <div id="root"></div>
 
     <script>
@@ -318,6 +329,9 @@
                 } catch (e) {
                     const msg = String(e?.message || '').toLowerCase();
                     const esErrorRed = msg.includes('failed to fetch') || msg.includes('networkerror') || msg.includes('load failed') || msg.includes('network request failed');
+                    alert(esErrorRed
+                        ? 'No fue posible conectar con el servidor. Verifica tu conexión e inténtalo nuevamente.'
+                        : (e?.message || 'No se pudo registrar la asignación.'));
                 }
             };
             
