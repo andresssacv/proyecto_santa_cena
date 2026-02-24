@@ -409,8 +409,8 @@ def admin_listar():
     return jsonify(res.data)
 
 
-@app.route('/admin/borrar', methods=['POST'])
-def admin_borrar():
+@app.route('/admin/borrar', methods=['POST'])␊
+def admin_borrar():␊
     supabase_error = require_supabase()
     if supabase_error:
         return supabase_error
@@ -429,6 +429,31 @@ def admin_borrar():
         .execute()
 
     return jsonify({"status": "ok"})
+
+
+@app.route('/registros/borrar', methods=['POST'])
+def registros_borrar():
+    supabase_error = require_supabase()
+    if supabase_error:
+        return supabase_error
+
+    user, err, code = get_current_user()
+    if err:
+        return err, code
+
+    data = request.get_json(silent=True) or {}
+    registro_id = data.get("id")
+    if not registro_id:
+        return jsonify({"status": "error", "message": "ID requerido"}), 400
+
+    supabase.table("registros_santa_cena") \
+        .delete() \
+        .eq("id", registro_id) \
+        .eq("registrador_id", user.id) \
+        .execute()
+
+    return jsonify({"status": "ok"})
+
 
 
 @app.route('/admin/reset', methods=['POST'])
@@ -478,5 +503,6 @@ def admin_export():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
 
 
