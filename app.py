@@ -98,6 +98,10 @@ def obtener_mesa_label(sector):
 
 @app.route('/')
 def index():
+    return render_template('login.html')
+
+@app.route('/mapa')
+def mapa():
     return render_template('index.html')
 
 @app.route('/admin')
@@ -460,3 +464,4 @@ def admin_export():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
