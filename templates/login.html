@@ -56,7 +56,7 @@
         if (data.refresh_token) {
           localStorage.setItem('refreshToken', data.refresh_token);
         }
-        window.location.href = '/';
+        window.location.href = '/mapa';
       } catch (err) {
         msg.textContent = err.message || 'Error de conexión';
         msg.classList.remove('hidden');
