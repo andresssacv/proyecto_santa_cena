@@ -22,13 +22,27 @@ missing_vars = [name for name, value in {
 }.items() if not value]
 
 SUPABASE_ENABLED = not missing_vars
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_ENABLED else None
+supabase = None
+supabase_init_error = None
+
+if SUPABASE_ENABLED:
+    try:
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+    except Exception as e:
+        SUPABASE_ENABLED = False
+        supabase_init_error = str(e)
+        missing_vars.append("SUPABASE_INIT_FAILED")
 
 token_secret = os.getenv("ASSIGNATION_LINK_SECRET") or (SUPABASE_KEY if SUPABASE_KEY else "dev-secret")
 token_serializer = URLSafeSerializer(token_secret)
 
 
 def get_config_error_message():
+    if supabase_init_error:
+        return (
+            "Configuración inválida de Supabase: no se pudo inicializar el cliente. "
+            f"Detalle: {supabase_init_error}"
+        )
     return (
         "Configuración incompleta: faltan variables de entorno requeridas "
         + ", ".join(missing_vars)
@@ -114,12 +128,12 @@ def login():
     return render_template('login.html')
 
 
-@app.route('/health')
 def health():
     return jsonify({
         "status": "ok" if SUPABASE_ENABLED else "degraded",
         "supabase_configured": SUPABASE_ENABLED,
         "missing_vars": missing_vars,
+        "supabase_init_error": supabase_init_error,
     }), 200
 
 
@@ -464,4 +478,5 @@ def admin_export():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
 
