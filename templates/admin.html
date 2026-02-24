@@ -96,9 +96,7 @@ if (!res.ok) {
 
   rows.forEach(r => {
     const tr = document.createElement("tr");
-    const botonBorrar = isAdmin
-      ? `<button class="delete" onclick="borrar('${r.id}')">Borrar</button>`
-      : '';
+    const botonBorrar = `<button class="delete" onclick="borrar('${r.id}')">Borrar</button>`;
 
     tr.innerHTML = `
       <td>${r.nombre ?? ''}</td>
@@ -114,7 +112,8 @@ if (!res.ok) {
 async function borrar(id) {
   if (!confirm('¿Eliminar registro?')) return;
 
-  const res = await fetch('/admin/borrar', {
+  const endpoint = isAdmin ? '/admin/borrar' : '/registros/borrar';
+  const res = await fetch(endpoint, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({ id })
