@@ -244,6 +244,19 @@
                     return;
                 }
 
+                if (!nombreHermano?.trim()) {
+                    alert('Debes ingresar el nombre del hermano.');
+                    return;
+                }
+                if (!trayNumber?.toString().trim()) {
+                    alert('Debes ingresar la fila a asignar.');
+                    return;
+                }
+                if (!selectedId) {
+                    alert('Debes seleccionar un sector válido para la fila indicada.');
+                    return;
+                }
+
                 const telefonoParaEnviar = telefonoSeleccionado || telefono;
                 const payload = { 
                     nombre: nombreHermano, 
@@ -656,7 +669,7 @@
                                     </div>
                                 )}
                                 <button 
-                                    onClick={enviarAlBackend}
+                                    onClick={() => enviarAlBackend()}
                                     className="w-full bg-green-600 hover:bg-green-700 text-white font-extrabold p-4 rounded-2xl shadow-lg transition-all active:scale-95"
                                 >
                                     REGISTRAR Y ENVIAR
