@@ -114,6 +114,7 @@ def obtener_mesa_label(sector):
 def index():
     return render_template('login.html')
 
+
 @app.route('/mapa')
 def mapa():
     return render_template('index.html')
@@ -128,6 +129,7 @@ def login():
     return render_template('login.html')
 
 
+@app.route('/health')
 def health():
     return jsonify({
         "status": "ok" if SUPABASE_ENABLED else "degraded",
@@ -409,8 +411,8 @@ def admin_listar():
     return jsonify(res.data)
 
 
-@app.route('/admin/borrar', methods=['POST'])␊
-def admin_borrar():␊
+@app.route('/admin/borrar', methods=['POST'])
+def admin_borrar():
     supabase_error = require_supabase()
     if supabase_error:
         return supabase_error
@@ -421,11 +423,14 @@ def admin_borrar():␊
     if not require_admin(user):
         return jsonify({"status": "error", "message": "Acceso solo administrador"}), 403
 
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
+    registro_id = data.get("id")
+    if not registro_id:
+        return jsonify({"status": "error", "message": "ID requerido"}), 400
 
     supabase.table("registros_santa_cena") \
         .delete() \
-        .eq("id", data.get("id")) \
+        .eq("id", registro_id) \
         .execute()
 
     return jsonify({"status": "ok"})
@@ -446,6 +451,18 @@ def registros_borrar():
     if not registro_id:
         return jsonify({"status": "error", "message": "ID requerido"}), 400
 
+    existing = (
+        supabase.table("registros_santa_cena")
+        .select("id")
+        .eq("id", registro_id)
+        .eq("registrador_id", user.id)
+        .limit(1)
+        .execute()
+    )
+
+    if not existing.data:
+        return jsonify({"status": "error", "message": "Registro no encontrado o sin permiso"}), 404
+
     supabase.table("registros_santa_cena") \
         .delete() \
         .eq("id", registro_id) \
@@ -453,7 +470,6 @@ def registros_borrar():
         .execute()
 
     return jsonify({"status": "ok"})
-
 
 
 @app.route('/admin/reset', methods=['POST'])
@@ -503,6 +519,3 @@ def admin_export():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-
-
-
