@@ -68,7 +68,7 @@
  }
  
 async function cargar() {
-  const res = await fetch('/registros/listar', { headers: getAuthHeaders() });
+  const res = await fetchWithTimeout('/registros/listar', { headers: getAuthHeaders() });
   const payload = await parseResponse(res);
  
 if (!res.ok) {
@@ -109,23 +109,47 @@ if (!res.ok) {
   });
 }
  
-async function borrar(id) {
+async function borrar(id, btn = null) {
   if (!confirm('¿Eliminar registro?')) return;
 
   const endpoint = isAdmin ? '/admin/borrar' : '/registros/borrar';
-  const res = await fetch(endpoint, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify({ id })
-  });
+  const originalText = btn?.textContent;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Borrando...';
+  }
 
-  const data = await parseResponse(res);
-  if (!res.ok) {
-    throw new Error(data?.message || `No se pudo borrar (HTTP ${res.status})`);
-   }
+  try {
+    const res = await fetchWithTimeout(endpoint, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ id })
+    });
 
+    const data = await parseResponse(res);
+    if (!res.ok) {
+      if (res.status === 401) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        window.location.href = '/login';
+        return;
+      }
+      throw new Error(data?.message || `No se pudo borrar (HTTP ${res.status})`);
+    }
 
-  await cargar();
+    await cargar();
+  } catch (e) {
+    if (e?.name === 'AbortError') {
+      alert('La solicitud tardó demasiado. Inténtalo nuevamente.');
+    } else {
+      alert(e?.message || 'No se pudo borrar el registro.');
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = originalText || 'Borrar';
+    }
+  }
 }
 
 async function resetAll() {
@@ -136,7 +160,7 @@ async function resetAll() {
   }
   if (!confirm('¿RESET TOTAL?')) return;
 
-  const res = await fetch("/admin/reset", { method:"POST", headers: getAuthHeaders() });
+  const res = await fetchWithTimeout("/admin/reset", { method:"POST", headers: getAuthHeaders() });
   const data = await parseResponse(res);
   if (!res.ok) {
     throw new Error(data?.message || `No se pudo resetear (HTTP ${res.status})`);
