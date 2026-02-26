@@ -4,6 +4,7 @@ from itsdangerous import URLSafeSerializer, BadSignature
 import urllib.parse
 import os
 import unicodedata
+import time
 
 app = Flask(__name__)
 CORS(app)
@@ -23,6 +24,9 @@ missing_vars = [name for name, value in {
 SUPABASE_ENABLED = not missing_vars
 supabase = None
 supabase_init_error = None
+TOKEN_CACHE = {}
+TOKEN_CACHE_TTL_SECONDS = 300
+
 
 token_secret = os.getenv("ASSIGNATION_LINK_SECRET") or (SUPABASE_KEY if SUPABASE_KEY else "dev-secret")
 token_serializer = URLSafeSerializer(token_secret)
@@ -56,6 +60,7 @@ def require_supabase():
         try:
             supabase = build_supabase_client(SUPABASE_URL, SUPABASE_KEY)
             supabase_init_error = None
+
         except Exception as e:
             supabase_init_error = str(e)
             SUPABASE_ENABLED = False
@@ -82,13 +87,25 @@ def get_current_user():
     if not token:
         return None, jsonify({"status": "error", "message": "No autorizado (token requerido)"}), 401
 
+    now = time.time()
+    cached = TOKEN_CACHE.get(token)
+    if cached and cached.get("exp", 0) > now:
+        return cached.get("user"), None, None
+
     try:
         user_resp = supabase.auth.get_user(token)
         user = user_resp.user
         if not user:
+            TOKEN_CACHE.pop(token, None)
             return None, jsonify({"status": "error", "message": "Token inválido"}), 401
+
+        if len(TOKEN_CACHE) > 1000:
+            TOKEN_CACHE.clear()
+
+        TOKEN_CACHE[token] = {"user": user, "exp": now + TOKEN_CACHE_TTL_SECONDS}
         return user, None, None
     except Exception:
+        TOKEN_CACHE.pop(token, None)
         return None, jsonify({"status": "error", "message": "Token inválido"}), 401
 
 
@@ -408,10 +425,10 @@ def enviar_asignacion():
 
         mensaje = (
             f"✅ *Registro Santa Cena 2026*\n\n"
-            f"Hola Hermano(a) *{nombre}*,\n"
+            f"Hola hermano(a) *{nombre}*,\n"
             f"Su lugar asignado es:\n"
             f"📍 *Sector {sector}*\n"
-            f"🧭 *Mesa: {mesa_label}*\n"
+            f"🧭 *{mesa_label}*\n"
             f"🪑 *Fila {fila}*\n\n"
             f"🔎 Ver mapa interactivo (solo lectura):\n{link_visualizacion}"
         )
