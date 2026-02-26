@@ -66,9 +66,20 @@
    }
    return { message: (await res.text()) || `HTTP ${res.status}` };
  }
+ async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
+   const controller = new AbortController();
+   const timeout = setTimeout(() => controller.abort(), timeoutMs);
+   try {
+     return await fetch(url, { ...options, signal: controller.signal });
+   } finally {
+     clearTimeout(timeout);
+   }
+ }
+
+ window.fetchWithTimeout = fetchWithTimeout;
  
 async function cargar() {
-  const res = await fetchWithTimeout('/registros/listar', { headers: getAuthHeaders() });
+  const res = await (window.fetchWithTimeout || fetch)('/registros/listar', { headers: getAuthHeaders() });
   const payload = await parseResponse(res);
  
 if (!res.ok) {
@@ -120,7 +131,7 @@ async function borrar(id, btn = null) {
   }
 
   try {
-    const res = await fetchWithTimeout(endpoint, {
+    const res = await (window.fetchWithTimeout || fetch)(endpoint, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ id })
@@ -157,10 +168,10 @@ async function resetAll() {
      alert('Solo administrador puede hacer reset total.');
      return;
 
-  }
+}
   if (!confirm('¿RESET TOTAL?')) return;
 
-  const res = await fetchWithTimeout("/admin/reset", { method:"POST", headers: getAuthHeaders() });
+  const res = await (window.fetchWithTimeout || fetch)("/admin/reset", { method:"POST", headers: getAuthHeaders() });
   const data = await parseResponse(res);
   if (!res.ok) {
     throw new Error(data?.message || `No se pudo resetear (HTTP ${res.status})`);
