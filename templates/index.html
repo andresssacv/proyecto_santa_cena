@@ -198,6 +198,8 @@
             const [nombreHermano, setNombreHermano] = useState('');
             const [telefono, setTelefono] = useState("");
             const [mostrandoCampoTelefono, setMostrandoCampoTelefono] = useState(false);
+            const [sugerenciasNombre, setSugerenciasNombre] = useState([]);
+            const [mostrarSugerenciasNombre, setMostrarSugerenciasNombre] = useState(false);
         
             // UN SOLO REF
             const containerRef = useRef(null);
@@ -236,6 +238,45 @@
                 }
             }, []);
 
+            useEffect(() => {
+                if (esModoLectura) return;
+
+                const query = (nombreHermano || '').trim();
+                if (query.length < 2) {
+                    setSugerenciasNombre([]);
+                    setMostrarSugerenciasNombre(false);
+                    return;
+                }
+
+                const accessToken = localStorage.getItem('accessToken');
+                if (!accessToken) return;
+
+                const timerId = setTimeout(async () => {
+                    try {
+                        const res = await fetch(`/contactos/sugerencias?q=${encodeURIComponent(query)}`, {
+                            headers: { 'Authorization': `Bearer ${accessToken}` }
+                        });
+                        if (!res.ok) return;
+                        const data = await res.json();
+                        const rows = Array.isArray(data?.rows) ? data.rows : [];
+                        setSugerenciasNombre(rows);
+                        setMostrarSugerenciasNombre(rows.length > 0);
+                    } catch (_) {
+                        setSugerenciasNombre([]);
+                        setMostrarSugerenciasNombre(false);
+                    }
+                }, 220);
+
+                return () => clearTimeout(timerId);
+            }, [nombreHermano, esModoLectura]);
+
+            const seleccionarSugerenciaNombre = (item) => {
+                setNombreHermano(item?.nombre || '');
+                if (item?.telefono) {
+                    setTelefono(item.telefono);
+                }
+                setMostrarSugerenciasNombre(false);
+            };
         
             const enviarAlBackend = async (telefonoSeleccionado = null) => {
                 const accessToken = localStorage.getItem('accessToken');
@@ -336,6 +377,8 @@
                         setTrayNumber("");
                         setTelefono("");
                         setMostrandoCampoTelefono(false);
+                        setSugerenciasNombre([]);
+                        setMostrarSugerenciasNombre(false);
                     } else {
                         alert(data.message);
                     }
@@ -640,17 +683,42 @@
                             {!esModoLectura ? (
                             // MODO CAPTADOR: Se ve el buscador
                             <div className="p-6 space-y-4 bg-white shadow-sm border-b">
-                                <div>
+                                <div className="relative">
                                     <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 block">
                                         Servidor a Asignar
                                     </label>
                                     <input 
                                         type="text"
                                         value={nombreHermano}
-                                        onChange={(e) => setNombreHermano(e.target.value)}
+                                        onChange={(e) => {
+                                            setNombreHermano(e.target.value);
+                                            setMostrarSugerenciasNombre(true);
+                                        }}
+                                        onFocus={() => {
+                                            if (sugerenciasNombre.length) setMostrarSugerenciasNombre(true);
+                                        }}
+                                        onBlur={() => {
+                                            setTimeout(() => setMostrarSugerenciasNombre(false), 120);
+                                        }}
                                         placeholder="Ej: Andres Acevedo"
                                         className="w-full p-4 bg-slate-100 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl outline-none transition-all font-bold text-slate-700"
                                     />
+                                    {mostrarSugerenciasNombre && sugerenciasNombre.length > 0 && (
+                                        <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-auto">
+                                            {sugerenciasNombre.map((item, idx) => (
+                                                <button
+                                                    key={`${item.nombre}-${item.telefono}-${idx}`}
+                                                    type="button"
+                                                    onMouseDown={(e) => e.preventDefault()}
+                                                    onClick={() => seleccionarSugerenciaNombre(item)}
+                                                    className="w-full text-left px-3 py-2 hover:bg-indigo-50 border-b border-slate-100 last:border-b-0"
+                                                >
+                                                    <div className="font-bold text-slate-800">{item.nombre}</div>
+                                                    <div className="text-xs text-slate-500">{item.telefono || 'Sin teléfono'}</div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                                 {/* --- INTEGRACIÓN DEL CAMPO DE TELÉFONO --- */}
                                 {mostrandoCampoTelefono && (
