@@ -4,6 +4,7 @@ from supabase import create_client
 from itsdangerous import URLSafeSerializer, BadSignature
 import urllib.parse
 import os
+import unicodedata
 import pandas as pd
 
 app = Flask(__name__)
@@ -85,6 +86,12 @@ def get_current_user():
 def require_admin(user):
     email = (user.email or "").lower()
     return email in ADMIN_EMAILS
+
+
+def normalize_text(value):
+    text = str(value or "").strip().lower()
+    text = unicodedata.normalize("NFD", text)
+    return "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
 
 
 def obtener_mesa_label(sector):
@@ -222,6 +229,46 @@ def auth_login():
     except Exception:
         return jsonify({"status": "error", "message": "Credenciales inválidas"}), 401
 
+
+@app.route('/contactos/sugerencias')
+def contactos_sugerencias():
+    supabase_error = require_supabase()
+    if supabase_error:
+        return supabase_error
+
+    user, err, code = get_current_user()
+    if err:
+        return err, code
+
+    q = (request.args.get('q') or '').strip()
+    if len(q) < 2:
+        return jsonify({"rows": []})
+
+    qn = normalize_text(q)
+
+    try:
+        res = supabase.table("contactos").select("nombre, telefono").ilike("nombre", f"%{q}%").limit(30).execute()
+        candidatos = res.data or []
+
+        filtrados = []
+        seen = set()
+        for c in candidatos:
+            nombre = str(c.get("nombre") or "").strip()
+            telefono = str(c.get("telefono") or "").strip()
+            if not nombre:
+                continue
+            key = (nombre.lower(), telefono)
+            if key in seen:
+                continue
+            seen.add(key)
+            if qn in normalize_text(nombre):
+                filtrados.append({"nombre": nombre, "telefono": telefono})
+
+        filtrados.sort(key=lambda x: (normalize_text(x["nombre"]), x["telefono"]))
+        return jsonify({"rows": filtrados[:10]})
+    except Exception:
+        return jsonify({"rows": []})
+
 # ======================
 # MAIN REGISTER ENDPOINT
 # ======================
@@ -247,10 +294,22 @@ def enviar_asignacion():
         if not nombre or not fila or not sector:
             return jsonify({"status": "error", "message": "Faltan datos requeridos"}), 400
 
-        # --- BUSCAR TELÉFONO(S) EN SUPABASE ---
-        contacto = supabase.table("contactos").select("telefono").ilike("nombre", nombre.strip()).execute()
+        # --- BUSCAR TELÉFONO(S) EN SUPABASE (tolerante a mayúsculas/acentos) ---
+        nombre_buscado = nombre.strip()
+        nombre_norm = normalize_text(nombre_buscado)
+        contacto = (
+            supabase.table("contactos")
+            .select("nombre, telefono")
+            .ilike("nombre", f"%{nombre_buscado}%")
+            .limit(50)
+            .execute()
+        )
 
-        candidatos = contacto.data or []
+        candidatos_raw = contacto.data or []
+        candidatos = [
+            c for c in candidatos_raw
+            if normalize_text(c.get("nombre", "")) == nombre_norm
+        ]
         telefono_destino = None
         telefono_enviado = str(telefono_enviado).strip() if telefono_enviado else ""
 
