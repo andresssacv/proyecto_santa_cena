@@ -200,6 +200,7 @@
             const [mostrandoCampoTelefono, setMostrandoCampoTelefono] = useState(false);
             const [nombreSugerencias, setNombreSugerencias] = useState([]);
             const [mostrarListaSugerencias, setMostrarListaSugerencias] = useState(false);
+            const suggestAbortRef = useRef(null);
         
             // UN SOLO REF
             const containerRef = useRef(null);
@@ -243,6 +244,10 @@
 
                 const q = (nombreHermano || '').trim();
                 if (q.length < 2) {
+                    if (suggestAbortRef.current) {
+                        suggestAbortRef.current.abort();
+                        suggestAbortRef.current = null;
+                    }
                     setNombreSugerencias([]);
                     setMostrarListaSugerencias(false);
                     return;
@@ -251,29 +256,35 @@
                 const accessToken = localStorage.getItem('accessToken');
                 if (!accessToken) return;
 
-                let active = true;
+                if (suggestAbortRef.current) {
+                    suggestAbortRef.current.abort();
+                }
+
+                const controller = new AbortController();
+                suggestAbortRef.current = controller;
+
                 const timer = setTimeout(async () => {
                     try {
                         const res = await fetch(`/contactos/sugerencias?q=${encodeURIComponent(q)}`, {
-                            headers: { 'Authorization': `Bearer ${accessToken}` }
+                            headers: { 'Authorization': `Bearer ${accessToken}` },
+                            signal: controller.signal
                         });
-                        if (!res.ok || !active) return;
+                        if (!res.ok) return;
                         const data = await res.json();
-                        if (!active) return;
                         const rows = Array.isArray(data?.rows) ? data.rows : [];
                         setNombreSugerencias(rows);
                         setMostrarListaSugerencias(rows.length > 0);
-                    } catch (_) {
-                        if (active) {
+                    } catch (e) {
+                        if (e?.name !== 'AbortError') {
                             setNombreSugerencias([]);
                             setMostrarListaSugerencias(false);
                         }
                     }
-                }, 250);
+                }, 350);
 
                 return () => {
-                    active = false;
                     clearTimeout(timer);
+                    controller.abort();
                 };
             }, [nombreHermano, esModoLectura]);
 
