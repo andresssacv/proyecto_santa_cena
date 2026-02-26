@@ -403,7 +403,7 @@ def enviar_asignacion():
             f"Hola Hermano(a) *{nombre}*,\n"
             f"Su lugar asignado es:\n"
             f"📍 *Sector {sector}*\n"
-            f"🧭 *Mesa: {mesa_label}*\n"
+            f"🧭 *{mesa_label}*\n"
             f"🪑 *Fila {fila}*\n\n"
             f"🔎 Ver mapa interactivo (solo lectura):\n{link_visualizacion}"
         )
@@ -592,3 +592,4 @@ def admin_export():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
