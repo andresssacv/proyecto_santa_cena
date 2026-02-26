@@ -5,7 +5,6 @@ from itsdangerous import URLSafeSerializer, BadSignature
 import urllib.parse
 import os
 import unicodedata
-import pandas as pd
 
 app = Flask(__name__)
 CORS(app)
@@ -571,6 +570,11 @@ def admin_export():
 
     res = supabase.table("registros_santa_cena").select("*").execute()
 
+    try:
+        import pandas as pd
+    except Exception:
+        return jsonify({"status": "error", "message": "Pandas no disponible en el servidor"}), 503
+
     df = pd.DataFrame(res.data)
     path = "export.csv"
     df.to_csv(path, index=False)
@@ -584,4 +588,4 @@ def admin_export():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-templates/admin.
+templates/admin.htm
