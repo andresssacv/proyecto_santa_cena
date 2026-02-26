@@ -239,44 +239,6 @@ def auth_login():
         return jsonify({"status": "error", "message": "Credenciales inválidas"}), 401
 
 
-@app.route('/contactos/sugerencias')
-def contactos_sugerencias():
-    supabase_error = require_supabase()
-    if supabase_error:
-        return supabase_error
-
-    user, err, code = get_current_user()
-    if err:
-        return err, code
-
-    q = (request.args.get('q') or '').strip()
-    if len(q) < 2:
-        return jsonify({"rows": []})
-
-    qn = normalize_text(q)
-
-    try:
-        res = supabase.table("contactos").select("nombre, telefono").ilike("nombre", f"%{q}%").limit(30).execute()
-        candidatos = res.data or []
-
-        filtrados = []
-        seen = set()
-        for c in candidatos:
-            nombre = str(c.get("nombre") or "").strip()
-            telefono = str(c.get("telefono") or "").strip()
-            if not nombre:
-                continue
-            key = (nombre.lower(), telefono)
-            if key in seen:
-                continue
-            seen.add(key)
-            if qn in normalize_text(nombre):
-                filtrados.append({"nombre": nombre, "telefono": telefono})
-
-        filtrados.sort(key=lambda x: (normalize_text(x["nombre"]), x["telefono"]))
-        return jsonify({"rows": filtrados[:10]})
-    except Exception:
-        return jsonify({"rows": []})
 
 # ======================
 # MAIN REGISTER ENDPOINT
@@ -403,7 +365,7 @@ def enviar_asignacion():
             f"Hola Hermano(a) *{nombre}*,\n"
             f"Su lugar asignado es:\n"
             f"📍 *Sector {sector}*\n"
-            f"🧭 *{mesa_label}*\n"
+            f"🧭 *Mesa: {mesa_label}*\n"
             f"🪑 *Fila {fila}*\n\n"
             f"🔎 Ver mapa interactivo (solo lectura):\n{link_visualizacion}"
         )
@@ -592,4 +554,3 @@ def admin_export():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-
