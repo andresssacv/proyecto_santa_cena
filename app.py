@@ -26,14 +26,6 @@ SUPABASE_ENABLED = not missing_vars
 supabase = None
 supabase_init_error = None
 
-if SUPABASE_ENABLED:
-    try:
-        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-    except Exception as e:
-        SUPABASE_ENABLED = False
-        supabase_init_error = str(e)
-        missing_vars.append("SUPABASE_INIT_FAILED")
-
 token_secret = os.getenv("ASSIGNATION_LINK_SECRET") or (SUPABASE_KEY if SUPABASE_KEY else "dev-secret")
 token_serializer = URLSafeSerializer(token_secret)
 
@@ -52,9 +44,23 @@ def get_config_error_message():
 
 
 def require_supabase():
-    if SUPABASE_ENABLED:
-        return None
-    return jsonify({"status": "error", "message": get_config_error_message()}), 503
+    global supabase, supabase_init_error, SUPABASE_ENABLED
+
+    if not SUPABASE_ENABLED:
+        return jsonify({"status": "error", "message": get_config_error_message()}), 503
+
+    if supabase is None:
+        try:
+            supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+            supabase_init_error = None
+        except Exception as e:
+            supabase_init_error = str(e)
+            SUPABASE_ENABLED = False
+            if "SUPABASE_INIT_FAILED" not in missing_vars:
+                missing_vars.append("SUPABASE_INIT_FAILED")
+            return jsonify({"status": "error", "message": get_config_error_message()}), 503
+
+    return None
 
 
 def get_bearer_token():
@@ -578,3 +584,4 @@ def admin_export():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+templates/admin.
