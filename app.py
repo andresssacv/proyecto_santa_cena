@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify, render_template, send_file
 from flask_cors import CORS
-from supabase import create_client
 from itsdangerous import URLSafeSerializer, BadSignature
 import urllib.parse
 import os
@@ -29,6 +28,11 @@ token_secret = os.getenv("ASSIGNATION_LINK_SECRET") or (SUPABASE_KEY if SUPABASE
 token_serializer = URLSafeSerializer(token_secret)
 
 
+def build_supabase_client(url, key):
+    from supabase import create_client as supabase_create_client
+    return supabase_create_client(url, key)
+
+
 def get_config_error_message():
     if supabase_init_error:
         return (
@@ -50,7 +54,7 @@ def require_supabase():
 
     if supabase is None:
         try:
-            supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+            supabase = build_supabase_client(SUPABASE_URL, SUPABASE_KEY)
             supabase_init_error = None
         except Exception as e:
             supabase_init_error = str(e)
@@ -588,4 +592,3 @@ def admin_export():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-templates/admin.htm
