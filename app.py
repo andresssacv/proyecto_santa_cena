@@ -240,6 +240,52 @@ def auth_login():
 
 
 
+@app.route('/contactos/sugerencias')
+def contactos_sugerencias():
+    supabase_error = require_supabase()
+    if supabase_error:
+        return supabase_error
+
+    user, err, code = get_current_user()
+    if err:
+        return err, code
+
+    q = (request.args.get('q') or '').strip()
+    if len(q) < 2:
+        return jsonify({"rows": []})
+
+    qn = normalize_text(q)
+
+    try:
+        res = (
+            supabase.table("contactos")
+            .select("nombre, telefono")
+            .ilike("nombre", f"%{q}%")
+            .limit(30)
+            .execute()
+        )
+        candidatos = res.data or []
+        rows = []
+        seen = set()
+        for c in candidatos:
+            nombre = str(c.get("nombre") or "").strip()
+            telefono = str(c.get("telefono") or "").strip()
+            if not nombre:
+                continue
+            if qn not in normalize_text(nombre):
+                continue
+            key = (nombre.lower(), telefono)
+            if key in seen:
+                continue
+            seen.add(key)
+            rows.append({"nombre": nombre, "telefono": telefono})
+
+        rows.sort(key=lambda x: (normalize_text(x.get("nombre", "")), x.get("telefono", "")))
+        return jsonify({"rows": rows[:10]})
+    except Exception:
+        return jsonify({"rows": []})
+
+
 # ======================
 # MAIN REGISTER ENDPOINT
 # ======================
