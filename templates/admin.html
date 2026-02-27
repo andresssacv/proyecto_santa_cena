@@ -8,12 +8,21 @@
  <style>
  body { font-family: Arial; background:#f4f6f8; padding:20px; }
  .container { max-width:1000px; margin:auto; background:white; padding:20px; border-radius:12px; }
- table { width:100%; border-collapse:collapse; margin-top:15px; }
+ .table-wrap { overflow-x:auto; -webkit-overflow-scrolling: touch; }
+ table { width:100%; border-collapse:collapse; margin-top:15px; min-width:560px; }
  td, th { padding:8px; border-bottom:1px solid #ddd; }
  button { padding:6px 10px; border:none; border-radius:6px; cursor:pointer; }
  .delete { background:red; color:white; }
- .reset { background:orange; color:white; }
+ .reset { background:orange; color:white; margin-bottom:8px; }
  .hidden { display:none; }
+  @media (max-width: 640px) {
+   body { padding:10px; }
+   .container { padding:12px; border-radius:10px; }
+   h2 { font-size:18px; margin-top:0; }
+   td, th { padding:6px; font-size:12px; }
+   button { font-size:12px; }
+   .reset { width:100%; }
+ }
  </style>
  </head>
  
@@ -31,6 +40,7 @@
 
   <button id="btnReset" class="reset hidden" onclick="resetAll()">Reset Total</button>
 
+  <div class="table-wrap">
   <table>
     <thead>
       <tr>
@@ -43,6 +53,7 @@
     </thead>
     <tbody id="tabla"></tbody>
   </table>
+</div>
 </div>
 
  <script>
