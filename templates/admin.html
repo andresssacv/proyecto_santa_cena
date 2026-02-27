@@ -9,18 +9,25 @@
  body { font-family: Arial; background:#f4f6f8; padding:20px; }
  .container { max-width:1000px; margin:auto; background:white; padding:20px; border-radius:12px; }
  .table-wrap { overflow-x:auto; -webkit-overflow-scrolling: touch; }
- table { width:100%; border-collapse:collapse; margin-top:15px; min-width:560px; }
- td, th { padding:8px; border-bottom:1px solid #ddd; }
+ table { width:100%; border-collapse:collapse; margin-top:15px; table-layout:fixed; }
+ td, th { padding:8px; border-bottom:1px solid #ddd; text-align:left; }
+ th:nth-child(1), td:nth-child(1) { width:40%; }
+ th:nth-child(2), td:nth-child(2) { width:16%; }
+ th:nth-child(3), td:nth-child(3) { width:18%; }
+ th:nth-child(4), td:nth-child(4) { width:26%; }
  button { padding:6px 10px; border:none; border-radius:6px; cursor:pointer; }
  .delete { background:red; color:white; }
  .reset { background:orange; color:white; margin-bottom:8px; }
  .hidden { display:none; }
   @media (max-width: 640px) {
-   body { padding:10px; }
-   .container { padding:12px; border-radius:10px; }
-   h2 { font-size:18px; margin-top:0; }
-   td, th { padding:6px; font-size:12px; }
-   button { font-size:12px; }
+   body { padding:8px; }
+   .container { padding:10px; border-radius:10px; }
+   h2 { font-size:17px; margin-top:0; margin-bottom:10px; }
+   .table-wrap { overflow-x:visible; }
+   table { margin-top:10px; table-layout:fixed; }
+   td, th { padding:5px 4px; font-size:11px; line-height:1.15; word-break:break-word; }
+   button { font-size:11px; padding:5px 6px; }
+   .delete { width:100%; }
    .reset { width:100%; }
  }
  </style>
