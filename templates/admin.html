@@ -47,7 +47,6 @@
         <th>Nombre</th>
         <th>Fila</th>
         <th>Sector</th>
-        <th>Fecha</th>
         <th>Acción</th>
       </tr>
     </thead>
@@ -124,7 +123,6 @@ if (!res.ok) {
       <td>${r.nombre ?? ''}</td>
       <td>${r.fila ?? ''}</td>
       <td>${r.sector ?? ''}</td>
-      <td>${r.created_at ? new Date(r.created_at).toLocaleString() : ''}</td>
       <td>${botonBorrar}</td>
     `;
     tabla.appendChild(tr);
