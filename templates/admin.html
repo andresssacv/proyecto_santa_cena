@@ -11,19 +11,20 @@
  .table-wrap { overflow-x:auto; -webkit-overflow-scrolling: touch; }
  table { width:100%; border-collapse:collapse; margin-top:15px; table-layout:fixed; }
  td, th { padding:8px; border-bottom:1px solid #ddd; text-align:left; }
- th:nth-child(1), td:nth-child(1) { width:40%; }
- th:nth-child(2), td:nth-child(2) { width:16%; }
- th:nth-child(3), td:nth-child(3) { width:18%; }
- th:nth-child(4), td:nth-child(4) { width:26%; }
+ .col-nombre { width:30%; }
+ .col-fila { width:12%; }
+ .col-sector { width:14%; }
+ .col-registrador { width:24%; }
+ .col-accion { width:20%; }
  button { padding:6px 10px; border:none; border-radius:6px; cursor:pointer; }
  .delete { background:red; color:white; }
  .reset { background:orange; color:white; margin-bottom:8px; }
  .hidden { display:none; }
-  @media (max-width: 640px) {
-   body { padding:8px; }
-   .container { padding:10px; border-radius:10px; }
-   h2 { font-size:17px; margin-top:0; margin-bottom:10px; }
-   .table-wrap { overflow-x:visible; }
+ @media (max-width: 640px) {
+  body { padding:8px; }
+  .container { padding:10px; border-radius:10px; }
+  h2 { font-size:17px; margin-top:0; margin-bottom:10px; }
+  .table-wrap { overflow-x:visible; }
    table { margin-top:10px; table-layout:fixed; }
    td, th { padding:5px 4px; font-size:11px; line-height:1.15; word-break:break-word; }
    button { font-size:11px; padding:5px 6px; }
@@ -41,7 +42,7 @@
  }
  </script>
 
-
++
 <div class="container">
   <h2 id="titulo">Mis registros — Santa Cena</h2>
 
@@ -62,7 +63,6 @@
   </table>
 </div>
 </div>
-
 
  <script>
  let isAdmin = false;
@@ -85,7 +85,7 @@
    }
    return { message: (await res.text()) || `HTTP ${res.status}` };
  }
-  
+
  async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
    const controller = new AbortController();
    const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -98,18 +98,18 @@
 
  window.fetchWithTimeout = fetchWithTimeout;
  
-async function cargar() {
++async function cargar() {
   const res = await (window.fetchWithTimeout || fetch)('/registros/listar', { headers: getAuthHeaders() });
   const payload = await parseResponse(res);
  
-if (!res.ok) {
++  if (!res.ok) {
     if (res.status === 401) {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       window.location.href = '/login';
       return;
      }
-    throw new Error(payload?.message || `Error al cargar admin (HTTP ${res.status})`);
++    throw new Error(payload?.message || `Error al cargar admin (HTTP ${res.status})`);
   }
 
   const rows = Array.isArray(payload?.rows) ? payload.rows : [];
@@ -142,7 +142,7 @@ if (!res.ok) {
     tabla.appendChild(tr);
   });
 }
- 
+
 async function borrar(id, btn = null) {
   if (!confirm('¿Eliminar registro?')) return;
 
@@ -190,8 +190,7 @@ async function resetAll() {
   if (!isAdmin) {
      alert('Solo administrador puede hacer reset total.');
      return;
-
-}
+  }
   if (!confirm('¿RESET TOTAL?')) return;
 
   const res = await (window.fetchWithTimeout || fetch)("/admin/reset", { method:"POST", headers: getAuthHeaders() });
