@@ -430,7 +430,8 @@ def enviar_asignacion():
             f"📍 *Sector {sector}*\n"
             f"🧭 *{mesa_label}*\n"
             f"🪑 *Fila {fila}*\n\n"
-            f"🔎 Ver mapa interactivo (solo lectura):\n{link_visualizacion}"
+            f"🔎 Ver mapa interactivo:\n"
+            f"Pincha aquí 👉 {link_visualizacion}"
         )
 
         url_wa = f"https://wa.me/{telefono_destino}?text={urllib.parse.quote(mensaje)}"
