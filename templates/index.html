@@ -200,10 +200,13 @@
             const [mostrandoCampoTelefono, setMostrandoCampoTelefono] = useState(false);
             const [nombreSugerencias, setNombreSugerencias] = useState([]);
             const [mostrarListaSugerencias, setMostrarListaSugerencias] = useState(false);
-            const suggestAbortRef = useRef(null);
+            // Compatibilidad con código previo (evita ReferenceError por nombre antiguo).
+            const setSugerenciasNombre = setNombreSugerencias;
+            
         
             // UN SOLO REF
             const containerRef = useRef(null);
+            const suggestAbortRef = useRef(null);
         
             // Corregir SECTORS -> SECTORS_CONFIG
             useEffect(() => {
@@ -248,7 +251,7 @@
                         suggestAbortRef.current.abort();
                         suggestAbortRef.current = null;
                     }
-                    setNombreSugerencias([]);
+                    setSugerenciasNombre([]);
                     setMostrarListaSugerencias(false);
                     return;
                 }
@@ -272,11 +275,11 @@
                         if (!res.ok) return;
                         const data = await res.json();
                         const rows = Array.isArray(data?.rows) ? data.rows : [];
-                        setNombreSugerencias(rows);
+                        setSugerenciasNombre(rows);
                         setMostrarListaSugerencias(rows.length > 0);
                     } catch (e) {
                         if (e?.name !== 'AbortError') {
-                            setNombreSugerencias([]);
+                            setSugerenciasNombre([]);
                             setMostrarListaSugerencias(false);
                         }
                     }
@@ -295,7 +298,6 @@
                 }
                 setMostrarListaSugerencias(false);
             };
-
         
             const enviarAlBackend = async (telefonoSeleccionado = null) => {
                 const accessToken = localStorage.getItem('accessToken');
