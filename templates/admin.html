@@ -98,22 +98,47 @@
 
  window.fetchWithTimeout = fetchWithTimeout;
  
-+async function cargar() {
+async function cargar() {
   const res = await (window.fetchWithTimeout || fetch)('/registros/listar', { headers: getAuthHeaders() });
   const payload = await parseResponse(res);
  
-+  if (!res.ok) {
+   if (!res.ok) {
     if (res.status === 401) {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       window.location.href = '/login';
       return;
      }
-+    throw new Error(payload?.message || `Error al cargar admin (HTTP ${res.status})`);
+     throw new Error(payload?.message || `Error al cargar admin (HTTP ${res.status})`);
   }
 
-  const rows = Array.isArray(payload?.rows) ? payload.rows : [];
-  isAdmin = !!payload?.is_admin;
+  let rows = [];
+  isAdmin = false;
+
+  if (Array.isArray(payload)) {
+    // Compatibilidad con respuestas antiguas (`/admin/listar` devolviendo array)
+    rows = payload;
+    isAdmin = true;
+  } else {
+    rows = Array.isArray(payload?.rows) ? payload.rows : [];
+    isAdmin = !!payload?.is_admin;
+  }
+
+  // Fallback para despliegues mixtos: si no vinieron filas, probar endpoint antiguo.
+  if (!rows.length) {
+    try {
+      const legacyRes = await (window.fetchWithTimeout || fetch)('/admin/listar', { headers: getAuthHeaders() });
+      if (legacyRes.ok) {
+        const legacyPayload = await parseResponse(legacyRes);
+        if (Array.isArray(legacyPayload)) {
+          rows = legacyPayload;
+          isAdmin = true;
+        }
+      }
+    } catch (_) {
+      // Ignoramos fallback fallido: seguimos con las filas que ya haya.
+    }
+  }
 
   document.getElementById('titulo').textContent = isAdmin
     ? 'Todos los registros — Santa Cena'
@@ -141,6 +166,12 @@
     `;
     tabla.appendChild(tr);
   });
+
+  if (!rows.length) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="${isAdmin ? 5 : 4}" style="color:#64748b; font-style:italic;">No hay registros para mostrar.</td>`;
+    tabla.appendChild(tr);
+  }
 }
 
 async function borrar(id, btn = null) {
