@@ -283,7 +283,7 @@
                             setMostrarListaSugerencias(false);
                         }
                     }
-                }, 350);
+                }, 150);
 
                 return () => {
                     clearTimeout(timer);
@@ -399,7 +399,7 @@
                         setTelefono("");
                         setMostrandoCampoTelefono(false);
                         setSugerenciasNombre([]);
-                        setMostrarSugerenciasNombre(false);
+                        setMostrarListaSugerencias(false);
                     } else {
                         alert(data.message);
                     }
