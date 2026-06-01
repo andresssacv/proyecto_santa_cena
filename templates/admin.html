@@ -98,6 +98,25 @@
 
  window.fetchWithTimeout = fetchWithTimeout;
  
+ function filaSortKey(row) {
+   const fila = String(row?.fila ?? '').trim();
+   if (/^\d+$/.test(fila)) {
+     return { tipo: 0, numero: Number(fila), texto: fila };
+   }
+   return { tipo: 1, numero: Number.MAX_SAFE_INTEGER, texto: fila.toLowerCase() };
+ }
+
+ function ordenarPorFila(rows) {
+   return [...rows].sort((a, b) => {
+     const filaA = filaSortKey(a);
+     const filaB = filaSortKey(b);
+
+     if (filaA.tipo !== filaB.tipo) return filaA.tipo - filaB.tipo;
+     if (filaA.numero !== filaB.numero) return filaA.numero - filaB.numero;
+     return filaA.texto.localeCompare(filaB.texto, 'es', { numeric: true });
+   });
+ }
+ 
 async function cargar() {
   const res = await (window.fetchWithTimeout || fetch)('/registros/listar', { headers: getAuthHeaders() });
   const payload = await parseResponse(res);
@@ -139,6 +158,7 @@ async function cargar() {
       // Ignoramos fallback fallido: seguimos con las filas que ya haya.
     }
   }
+ rows = ordenarPorFila(rows);
 
   document.getElementById('titulo').textContent = isAdmin
     ? 'Todos los registros — Santa Cena'
