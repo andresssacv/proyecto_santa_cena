@@ -119,6 +119,16 @@ def normalize_text(value):
     text = unicodedata.normalize("NFD", text)
     return "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
 
+def fila_sort_key(registro):
+    fila = str((registro or {}).get("fila") or "").strip()
+    if fila.isdigit():
+        return (0, int(fila), fila)
+    return (1, fila.lower(), fila)
+
+
+def sort_registros_by_fila(rows):
+    return sorted(rows or [], key=fila_sort_key)
+
 
 def obtener_mesa_label(sector):
     """Retorna el nombre de mesa/mesón en base al sector."""
@@ -464,7 +474,7 @@ def mis_registros():
         .order("created_at", desc=True) \
         .execute()
 
-    return jsonify(res.data)
+    return jsonify(sort_registros_by_fila(res.data))
 
 
 
@@ -484,7 +494,9 @@ def registros_listar():
         query = query.eq("registrador_id", user.id)
 
     res = query.execute()
-    return jsonify({"rows": res.data or [], "is_admin": is_admin})
+    return jsonify({"rows": sort_registros_by_fila(res.data), "is_admin": is_admin})
+
+
 @app.route('/admin/listar')
 def admin_listar():
     supabase_error = require_supabase()
@@ -502,7 +514,7 @@ def admin_listar():
         .order("created_at", desc=True) \
         .execute()
 
-    return jsonify(res.data)
+    return jsonify(sort_registros_by_fila(res.data))
 
 
 @app.route('/admin/borrar', methods=['POST'])
